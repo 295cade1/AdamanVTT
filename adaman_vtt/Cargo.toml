@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = "0.11.2"
+bevy = {version = "0.11.1", features = ["jpeg"]}
 bevy_matchbox = "0.7.0"
-bevy_web_asset = "0.5.0"
+bevy_remote_asset = "0.1.1"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
