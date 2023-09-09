@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_matchbox::prelude::*;
-use bevy::log::info;
 
 pub struct GameStartPlugin;
 
@@ -8,7 +7,9 @@ impl Plugin for GameStartPlugin {
   fn build(&self, app: &mut App) {
     app.add_systems(Startup, setup)
         .add_systems(Startup, open_socket)
-        .add_systems(Update, deal_with_connections)
+        .add_systems(PreUpdate, deal_with_connections)
+        .add_systems(Update, keyboard_input)
+        .add_systems(Update, recieve)
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)));
   }
 }
@@ -55,7 +56,7 @@ fn setup(mut commands: Commands,
 }
 
 fn open_socket(mut commands: Commands) {
-    let room_url = "ws://127.0.0.1:3536/adamantvtt?next=10";
+    let room_url = "ws://127.0.0.1:3536/adamantvtt";
 
     let socket: MatchboxSocket<MultipleChannels> = WebRtcSocketBuilder::new(room_url)
         .add_channel(ChannelConfig::reliable())
@@ -70,7 +71,37 @@ fn deal_with_connections(mut connection: ResMut<MatchboxSocket<MultipleChannels>
         Err(_x) => panic!("TODO DEAL WITH DISCONNECTED"),
         Ok(x) => x,
     };
-    for peerID, peerState in updated_peers {
-        unimplemented!();
+    for (peer_id, peer_state) in updated_peers {
+        let peer_state = match peer_state {
+            PeerState::Connected => "Connected",
+            PeerState::Disconnected => "Disconnected",
+        };
+        println!("{peer_id} : {peer_state}");
+    }
+}
+
+fn keyboard_input(
+    keys: Res<Input<KeyCode>>,
+    mut connection: ResMut<MatchboxSocket<MultipleChannels>>,
+) {
+    if keys.just_pressed(KeyCode::Space) {
+        let ids = Vec::from_iter(connection.connected_peers());
+        for peer_id in ids {
+            let arr: [u8; 1] = [5];
+            connection.get_channel(0).unwrap().send(Box::new(arr), peer_id);
+        }
+    }
+}
+
+fn recieve(
+    mut connection: ResMut<MatchboxSocket<MultipleChannels>>,
+) {
+    let recieved = connection.get_channel(0).unwrap().receive();
+    for (peer_id, packet)  in recieved {
+        let isfive = match packet.first() {
+            None => false,
+            Some(&x) => x == 5,
+        };
+        println!("Recieved from: {peer_id} : {isfive}")
     }
 }
