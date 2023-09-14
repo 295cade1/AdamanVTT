@@ -9,6 +9,7 @@ edition = "2021"
 bevy = {version = "0.11.1", features = ["jpeg"]}
 bevy_matchbox = "0.7.0"
 bevy_remote_asset = "0.1.1"
+bytemuck = "1.14.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

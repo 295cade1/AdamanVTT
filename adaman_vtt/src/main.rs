@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use bevy_remote_asset::RemoteAssetPlugin;
 
+//All modules
 mod startup;
+mod networking;
+mod orders;
 
 fn main() {
   App::new() 
@@ -17,5 +20,6 @@ fn main() {
         })
       )
       .add_plugins(startup::GameStartPlugin)
+      .add_plugins(networking::NetworkingPlugin)
       .run();
 }
