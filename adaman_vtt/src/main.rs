@@ -5,6 +5,7 @@ use bevy_remote_asset::RemoteAssetPlugin;
 mod startup;
 mod networking;
 mod orders;
+mod tokens;
 
 fn main() {
   App::new() 
@@ -21,5 +22,6 @@ fn main() {
       )
       .add_plugins(startup::GameStartPlugin)
       .add_plugins(networking::NetworkingPlugin)
+      .add_plugins(orders::OrdersPlugin)
       .run();
 }
