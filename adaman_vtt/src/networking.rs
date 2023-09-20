@@ -1,23 +1,24 @@
 use bevy::prelude::*;
 use bevy_matchbox::prelude::*;
-use bytemuck::*;
+use serde::{Serialize, Deserialize};
+use postcard::{from_bytes, to_stdvec};
 
 use crate::orders;
-use crate::tokens;
 
 pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
   fn build(&self, app: &mut App) {
-    app.add_systems(Startup, (open_socket, init_hashtable))
+    app.add_systems(Startup, open_socket)
         .add_event::<NetworkedCommandEvent>()
         .add_event::<ClientCommandEvent>()
         .add_systems(Update, deal_with_connections)
-        .add_systems(Update, split_client_events)
+        .add_systems(Update, split_client_events.before(orders::recieve_orders))
         .add_systems(Update, send_networked_events.after(split_client_events).after(deal_with_connections))
-        .add_systems(Update, recieve_networked_events.after(deal_with_connections));
+        .add_systems(Update, recieve_networked_events.after(deal_with_connections).before(orders::recieve_orders));
   }
 }
+
 fn open_socket(mut commands: Commands) {
     let room_url = "ws://127.0.0.1:3536/adamantvtt";
 
@@ -27,20 +28,6 @@ fn open_socket(mut commands: Commands) {
         .into();
 
     commands.insert_resource(socket);
-}
-
-type ValidationHash = u8;
-
-#[derive(Resource)]
-struct TokenHashes {
-    hashes: std::collections::HashMap<tokens::TokenID, ValidationHash>
-}
-
-fn init_hashtable(mut commands: Commands) {
-    let hash: TokenHashes = TokenHashes{
-        hashes: std::collections::HashMap::<tokens::TokenID, ValidationHash>::new(),
-    };
-    commands.insert_resource(hash);
 }
 
 fn deal_with_connections(mut connection: ResMut<MatchboxSocket<MultipleChannels>>){
@@ -57,21 +44,26 @@ fn deal_with_connections(mut connection: ResMut<MatchboxSocket<MultipleChannels>
     }
 }
 
+#[derive(Serialize, Deserialize, Copy, Clone)]
 enum NetworkReliability {
     Reliable,
-    Unreliable,
 }
 
-#[derive(Event)]
+#[derive(Event, Serialize, Deserialize)]
 struct NetworkedCommandEvent{
-    pub command: order::Command,
+    pub order: orders::OrderEvent,
     pub reliability: NetworkReliability,
-    pub validation: ValidationHash,
+}
+
+#[derive(Serialize, Deserialize)]
+struct NetworkPacket{
+    pub order: orders::OrderEvent,
 }
 
 #[derive(Event)]
 struct ClientCommandEvent{
-    pub command: order::Command,
+    pub order: orders::OrderEvent,
+    pub reliability: NetworkReliability,
 }
 
 //Split the events from the client into events to be networked 
@@ -83,13 +75,10 @@ fn split_client_events(
 ) {
     for ev in ev_client.iter() {
         ev_networked.send(NetworkedCommandEvent{
-            command: ev.command,
-            reliability: NetworkReliability::Reliable,
-            validation: 0,
+            order: ev.order,
+            reliability: ev.reliability,
         });
-        ev_order.send(orders::OrderEvent {
-            command: ev.command
-        });
+        ev_order.send(ev.order);
     }
 }
 
@@ -100,12 +89,14 @@ fn send_networked_events(
     for ev in ev_networked.iter() {
         let ids = Vec::from_iter(connection.connected_peers());
         for peer_id in ids {
-            let arr = bytes_of(ev);
+            let packet = NetworkPacket{
+                order: ev.order,
+            };
+            let arr = to_stdvec(&packet).unwrap().into_boxed_slice();
             let channel = match ev.reliability {
                 NetworkReliability::Reliable => 0,
-                NetworkReliability::Unreliable => 1,
             };
-            connection.get_channel(channel).unwrap().send(Box::new(arr), peer_id);
+            connection.get_channel(channel).unwrap().send(arr, peer_id);
         }
     }
 }
@@ -117,11 +108,8 @@ fn recieve_networked_events(
     //Reliable
     let recieved = connection.get_channel(0).unwrap().receive();
     for (peer_id, packet) in recieved {
-        println!("Recieved from: {peer_id}");
-    }
-    //Unreliable
-    let recieved = connection.get_channel(1).unwrap().receive();
-    for (peer_id, packet) in recieved {
+        let remote_order = from_bytes::<NetworkPacket>(&packet).unwrap();
+        ev_order.send(remote_order.order);
         println!("Recieved from: {peer_id}");
     }
 }

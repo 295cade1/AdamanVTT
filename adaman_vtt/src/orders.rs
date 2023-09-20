@@ -1,20 +1,33 @@
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
+
+use crate::tokens;
 
 pub struct OrdersPlugin;
 
 impl Plugin for OrdersPlugin {
   fn build(&self, app: &mut App) {
     app.add_event::<OrderEvent>()
+        .add_systems(Update, recieve_orders);
   }
 }
-#[derive(Event)]
+#[derive(Event, Serialize, Deserialize)]
 pub struct OrderEvent {
   pub command: Command,
+  pub token_id: tokens::TokenID
 } 
 
-struct Position(f32, f32);
-
+#[derive(Serialize, Deserialize)]
 pub enum Command {
-    Move(Position),
+  ModifyToken(tokens::TokenBundle)
 }
 
+pub fn recieve_orders(
+  mut ev_orders: EventReader<OrderEvent>,
+  mut cmds: Commands,
+) {
+  let mut relevant_ids = std::collections::hash_set::HashSet::<tokens::TokenID>::new();
+  for ord in ev_orders.iter(){
+    relevant_ids.insert(ord.token_id);
+  }
+}
