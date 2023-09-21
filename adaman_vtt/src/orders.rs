@@ -8,26 +8,49 @@ pub struct OrdersPlugin;
 impl Plugin for OrdersPlugin {
   fn build(&self, app: &mut App) {
     app.add_event::<OrderEvent>()
-        .add_systems(Update, recieve_orders);
+        .add_systems(Update, recieve_orders)
+        .add_event::<MoveCommand>()
+        .add_systems(Update, recieve_move.after(recieve_orders));
   }
 }
-#[derive(Event, Serialize, Deserialize)]
+#[derive(Event, Serialize, Deserialize, Copy, Clone)]
 pub struct OrderEvent {
   pub command: Command,
-  pub token_id: tokens::TokenID
 } 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
 pub enum Command {
-  ModifyToken(tokens::TokenBundle)
+  Move(MoveCommand),
 }
 
 pub fn recieve_orders(
   mut ev_orders: EventReader<OrderEvent>,
-  mut cmds: Commands,
+  mut ev_move: EventWriter<MoveCommand>,
 ) {
-  let mut relevant_ids = std::collections::hash_set::HashSet::<tokens::TokenID>::new();
-  for ord in ev_orders.iter(){
-    relevant_ids.insert(ord.token_id);
+  for ord_ev in ev_orders.iter() {
+    match ord_ev.command {
+      Command::Move(cmd) => ev_move.send(cmd),
+    }
+  }
+}
+
+#[derive(Event, Serialize, Deserialize, Copy, Clone)]
+pub struct MoveCommand {
+  pub x: f32,
+  pub y: f32,
+  pub id: tokens::TokenID,
+}
+
+fn recieve_move(
+  mut ev_move: EventReader<MoveCommand>,
+  mut tokens: Query<(&tokens::TokenID, &mut Transform)>
+) {
+  for mut mov_ev in ev_move.iter() {
+    for mut token in tokens.iter_mut() {
+      if token.0.0 == mov_ev.id.0 {
+        token.1.translation.x = mov_ev.x;
+        token.1.translation.z = mov_ev.y;
+      }
+    }
   }
 }

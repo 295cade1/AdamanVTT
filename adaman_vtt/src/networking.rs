@@ -45,8 +45,9 @@ fn deal_with_connections(mut connection: ResMut<MatchboxSocket<MultipleChannels>
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone)]
-enum NetworkReliability {
+pub enum NetworkReliability {
     Reliable,
+    Unreliable,
 }
 
 #[derive(Event, Serialize, Deserialize)]
@@ -61,7 +62,7 @@ struct NetworkPacket{
 }
 
 #[derive(Event)]
-struct ClientCommandEvent{
+pub struct ClientCommandEvent{
     pub order: orders::OrderEvent,
     pub reliability: NetworkReliability,
 }
@@ -95,6 +96,7 @@ fn send_networked_events(
             let arr = to_stdvec(&packet).unwrap().into_boxed_slice();
             let channel = match ev.reliability {
                 NetworkReliability::Reliable => 0,
+                NetworkReliability::Unreliable => 1,
             };
             connection.get_channel(channel).unwrap().send(arr, peer_id);
         }
@@ -107,6 +109,13 @@ fn recieve_networked_events(
 ) {
     //Reliable
     let recieved = connection.get_channel(0).unwrap().receive();
+    for (peer_id, packet) in recieved {
+        let remote_order = from_bytes::<NetworkPacket>(&packet).unwrap();
+        ev_order.send(remote_order.order);
+        println!("Recieved from: {peer_id}");
+    }
+    //Unreliable
+    let recieved = connection.get_channel(1).unwrap().receive();
     for (peer_id, packet) in recieved {
         let remote_order = from_bytes::<NetworkPacket>(&packet).unwrap();
         ev_order.send(remote_order.order);
