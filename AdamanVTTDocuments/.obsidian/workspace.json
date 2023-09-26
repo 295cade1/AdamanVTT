@@ -149,6 +149,16 @@
                 "file": "Movement.md"
               }
             }
+          },
+          {
+            "id": "23a49598936882b8",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency"
+              }
+            }
           }
         ]
       }

@@ -1,7 +1,5 @@
 use bevy::prelude::*;
 
-use crate::tokens;
-
 pub struct GameStartPlugin;
 
 impl Plugin for GameStartPlugin {
@@ -13,7 +11,6 @@ impl Plugin for GameStartPlugin {
 
 fn setup(mut commands: Commands,
             mut meshes: ResMut<Assets<Mesh>>,
-            mut images: ResMut<Assets<Image>>,
             asset_server: Res<AssetServer>,
             mut materials: ResMut<Assets<StandardMaterial>>,
         ) {
@@ -29,26 +26,6 @@ fn setup(mut commands: Commands,
         size: Vec2{x: 50.,y: 50.},
         flip: false,
     };
-
-    let token_quad = shape::Quad {
-        size: Vec2{x: 5.,y: 5.},
-        flip: false,
-    };
-
-    let new_token = tokens::TokenBundle {
-        pbr: PbrBundle {
-            mesh: meshes.add(token_quad.into()),
-            material: materials.add(StandardMaterial{
-                base_color: Color::BLUE,
-              ..default()
-            }),
-            transform: Transform::from_xyz(0., 1., 0.).looking_at(Vec3::new(0., -1., 0.), Vec3::Y),
-            ..default()
-        },
-        token_id: tokens::TokenID(5),
-    };
-
-    commands.spawn(new_token);
 
     commands.spawn(PbrBundle {
         mesh: meshes.add(bg_quad.into()),
