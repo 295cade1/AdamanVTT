@@ -1,13 +1,13 @@
 
-pub struct NetworkingPlugin;
+pub struct InputPlugin;
 
-impl Plugin for NetworkingPlugin {
+impl Plugin for InputPlugin {
   fn build(&self, app: &mut App) {
-    app .add_systems(Update, test_input);
+    app .add_systems(Update, moving_token_input);
   }
 }
 
-fn test_input(
+fn moving_token_input(
   keys: Res<Input<KeyCode>>,
   mut ev_client: EventWriter<networking::ClientCommandEvent>,
 ) {
@@ -22,19 +22,5 @@ fn test_input(
       },
       reliability: networking::NetworkReliability::Reliable,
     })
-  }
-  if keys.just_pressed(KeyCode::Numpad2) {
-    ev_client.send(
-      networking::ClientCommandEvent{
-        order: orders::OrderEvent{
-          command: orders::Command::Move(orders::MoveCommand{
-            x: 5.,
-            y: 5.,
-            id: tokens::TokenID(5),
-          })
-        },
-        reliability: networking::NetworkReliability::Reliable,
-      }
-    )
   }
 }

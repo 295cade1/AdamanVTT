@@ -6,6 +6,8 @@ mod startup;
 mod networking;
 mod orders;
 mod tokens;
+mod ui;
+mod input;
 
 fn main() {
   App::new() 
@@ -20,6 +22,7 @@ fn main() {
           ..default()
         })
       )
+      .add_plugins(ui::UIPlugin)
       .add_plugins(startup::GameStartPlugin)
       .add_plugins(networking::NetworkingPlugin)
       .add_plugins(orders::OrdersPlugin)

@@ -1,0 +1,1 @@
+Make a UI panel to manually fill out the Token's data.

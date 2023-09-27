@@ -8,11 +8,13 @@
         "type": "tabs",
         "children": [
           {
-            "id": "c2f8a13d7ac6c874",
+            "id": "dece9957c2d0743d",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {}
+              "type": "kanban",
+              "state": {
+                "file": "Untitled Kanban.md"
+              }
             }
           },
           {
@@ -39,8 +41,7 @@
               }
             }
           }
-        ],
-        "currentTab": 2
+        ]
       }
     ],
     "direction": "vertical"
@@ -106,7 +107,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Movement.md",
+                "file": "Untitled Kanban.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -123,7 +124,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Movement.md",
+                "file": "Untitled Kanban.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -146,7 +147,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Movement.md"
+                "file": "Untitled Kanban.md"
               }
             }
           },
@@ -177,9 +178,21 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "da8467b0f3bccb2f",
+  "active": "dece9957c2d0743d",
   "lastOpenFiles": [
-    "Tokens.md",
-    "Movement.md"
+    "Saving.md",
+    "Untitled Kanban.md",
+    "Saving 1.md",
+    "Encounter Data.md",
+    "Map Data.md",
+    "Creating Maps.md",
+    "Manual Token Data Entry.md",
+    "Creating Tokens From Data.md",
+    "Token Data.md",
+    "Creating Tokens.md",
+    "Basic Token Movement.md",
+    "Main.md",
+    "Movement.md",
+    "Tokens.md"
   ]
 }
