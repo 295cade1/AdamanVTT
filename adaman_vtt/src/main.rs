@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_remote_asset::RemoteAssetPlugin;
+use bevy_mod_picking::prelude::*;
 
 //All modules
 mod startup;
@@ -22,6 +23,8 @@ fn main() {
           ..default()
         })
       )
+      .add_plugins(input::InputPlugin)
+      .add_plugins(DefaultPickingPlugins)
       .add_plugins(ui::UIPlugin)
       .add_plugins(startup::GameStartPlugin)
       .add_plugins(networking::NetworkingPlugin)

@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_mod_picking::prelude::*;
 
 pub struct GameStartPlugin;
 
@@ -14,10 +15,12 @@ fn setup(mut commands: Commands,
             asset_server: Res<AssetServer>,
             mut materials: ResMut<Assets<StandardMaterial>>,
         ) {
-    let camera_bundle = Camera3dBundle {
+    let camera_bundle = (Camera3dBundle {
         transform: Transform::from_xyz(0., 100., 0.).looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
         ..default()
-    };
+    },
+    RaycastPickCamera::default(),
+    );
     commands.spawn(camera_bundle);
 
     let tex = Some(asset_server.load("https://i.pinimg.com/originals/27/2d/7e/272d7e20f512f3bc24713248ce626b5d.jpg"));

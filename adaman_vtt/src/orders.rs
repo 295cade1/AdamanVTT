@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use serde::{Serialize, Deserialize};
+use bevy_mod_picking::prelude::*;
 
 use crate::tokens;
+use crate::input;
 
 pub struct OrdersPlugin;
 
@@ -79,18 +81,22 @@ fn recieve_create_token(
         flip: false,
     };
 
-    let new_token = tokens::TokenBundle {
+    let new_token = (tokens::TokenBundle {
         pbr: PbrBundle {
             mesh: meshes.add(token_quad.into()),
             material: materials.add(StandardMaterial{
                 base_color: Color::BLUE,
               ..default()
             }),
-            transform: Transform::from_xyz(ev.x, 1., ev.y).looking_at(Vec3::new(ev.x, -1., ev.y), Vec3::Y),
+            transform: Transform::from_xyz(ev.x, 0.1, ev.y).looking_at(Vec3::new(ev.x, -1., ev.y), Vec3::Y),
             ..default()
         },
-        token_id: tokens::TokenID(5),
-    };
+        token_id: ev.id,
+    }, 
+    PickableBundle::default(),      // Makes the entity pickable
+    RaycastPickTarget::default(),    // Marker for the `bevy_picking_raycast` backend
+    On::<Pointer<Drag>>::send_event::<input::TokenDragEvent>(),
+    );
     commands.spawn(new_token);
   }
 }
