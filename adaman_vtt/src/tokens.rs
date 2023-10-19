@@ -1,14 +1,40 @@
 use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
-
-#[derive(Serialize, Deserialize, Clone, Copy, Component, Eq, Hash, PartialEq)]
-pub struct TokenID(pub u32);
-
-//TODO deal with possible duplicate ID issues
+use bevy_mod_picking::prelude::*;
+use crate::input;
+use crate::baseplate;
 
 #[derive(Bundle)]
 pub struct TokenBundle {
-  pub token_id: TokenID,
   #[bundle()]
-  pub pbr: PbrBundle,
+  pub base: baseplate::BaseplateBundle,
+  #[bundle()]
+  pub pickable: PickableBundle,
+  #[bundle()]
+  pub target: RaycastPickTarget,
+  #[bundle()]
+  pub drag_event: On<Pointer<Drag>>,
+  pub token: TokenFlag,
+}
+
+#[derive(Component)]
+pub struct TokenFlag;
+
+impl TokenBundle {
+  pub fn new(
+    id: baseplate::ID,
+    position: Vec3,
+    url: String,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    asset_server: &Res<AssetServer>,
+  ) -> TokenBundle
+  {
+    TokenBundle {
+        base: baseplate::BaseplateBundle::new(id, position, Vec2::new(5., 5.), url, meshes, materials, asset_server),
+        pickable: PickableBundle::default(),      // Makes the entity pickable
+        target: RaycastPickTarget::default(),    // Marker for the `bevy_picking_raycast` backend
+        drag_event: On::<Pointer<Drag>>::send_event::<input::TokenDragEvent>(),
+        token: TokenFlag,
+    }
+  }
 }

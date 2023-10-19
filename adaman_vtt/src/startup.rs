@@ -10,35 +10,17 @@ impl Plugin for GameStartPlugin {
   }
 }
 
-fn setup(mut commands: Commands,
-            mut meshes: ResMut<Assets<Mesh>>,
-            asset_server: Res<AssetServer>,
-            mut materials: ResMut<Assets<StandardMaterial>>,
-        ) {
+fn setup(mut commands: Commands) {
     let camera_bundle = (Camera3dBundle {
         transform: Transform::from_xyz(0., 100., 0.).looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
+        projection: PerspectiveProjection{
+            ..default()
+        }.into(),
         ..default()
     },
     RaycastPickCamera::default(),
     );
     commands.spawn(camera_bundle);
-
-    let tex = Some(asset_server.load("https://i.pinimg.com/originals/27/2d/7e/272d7e20f512f3bc24713248ce626b5d.jpg"));
-
-    let bg_quad = shape::Quad {
-        size: Vec2{x: 50.,y: 50.},
-        flip: false,
-    };
-
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(bg_quad.into()),
-        material: materials.add(StandardMaterial{
-            base_color_texture: tex,
-          ..default()
-        }),
-        transform: Transform::from_xyz(0., 0., 0.).looking_at(Vec3::new(0., -1., 0.), Vec3::Y),
-        ..default()
-    });
 
     commands.spawn(PointLightBundle {
           point_light: PointLight {

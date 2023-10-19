@@ -3,33 +3,14 @@ use bevy_mod_picking::prelude::*;
 
 use crate::networking;
 use crate::orders;
-use crate::tokens;
+use crate::baseplate;
 
 pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
   fn build(&self, app: &mut App) {
-    app.add_systems(Update, moving_token_input)
-        .add_event::<TokenDragEvent>()
+    app.add_event::<TokenDragEvent>()
         .add_systems(Update, recieve_dragging_tokens.before(orders::recieve_orders));
-  }
-}
-
-fn moving_token_input(
-  keys: Res<Input<KeyCode>>,
-  mut ev_client: EventWriter<networking::ClientCommandEvent>,
-) {
-  if keys.just_pressed(KeyCode::Key1) {
-    ev_client.send(networking::ClientCommandEvent{
-      order: orders::OrderEvent{
-        command: orders::Command::CreateToken(orders::CreateTokenCommand{
-          x: 1.,
-          y: 1.,
-          id: tokens::TokenID(1),
-        })
-      },
-      reliability: networking::NetworkReliability::Reliable,
-    })
   }
 }
 
@@ -47,20 +28,16 @@ impl From<ListenerInput<Pointer<Drag>>> for TokenDragEvent {
 fn recieve_dragging_tokens(
   mut ev_drag : EventReader<TokenDragEvent>,
   mut ev_client : EventWriter<networking::ClientCommandEvent>,
-  tokens : Query<(&tokens::TokenID, &Transform)>,
+  tokens : Query<(&baseplate::ID, &Transform)>,
   // query to get camera transform
   camera_q: Query<(&Camera, &GlobalTransform)>,
 ) {
 
   let (camera, camera_transform) = camera_q.single();
 
-  let mut dict = std::collections::HashMap::<tokens::TokenID, (f32, f32)>::new();
+  let mut dict = std::collections::HashMap::<baseplate::ID, (f32, f32)>::new();
   for drag_ev in ev_drag.iter() {
     if let Ok(token) = tokens.get(drag_ev.input.listener()) {
-      let cur_pos = match dict.get(token.0) {
-        Some(x) => x.clone(),
-        None => (token.1.translation.x, token.1.translation.z),
-      };
       dict.insert(*token.0, (drag_ev.input.pointer_location.position.x, drag_ev.input.pointer_location.position.y));
     }
   }
@@ -99,4 +76,41 @@ fn get_plane_intersection(ray: Ray, plane_origin: Vec3, plane_normal: Vec3) -> O
     } else {
     Option::None
   }
+}
+
+//UI funcs
+pub fn create_token(x: f32, y: f32, url: Option<&str>) -> networking::ClientCommandEvent {
+  let url = match url {
+    Some(x) => x,
+    None => "https://api.open5e.com/static/img/monsters/hezrou.png"
+  };
+  networking::ClientCommandEvent{
+      order: orders::OrderEvent{
+        command: orders::Command::CreateToken(orders::CreateTokenCommand{
+          x,
+          y,
+          id: baseplate::ID(baseplate::get_new_id()),
+          url: url.to_string(),
+        })
+      },
+      reliability: networking::NetworkReliability::Reliable,
+    }
+}
+
+pub fn create_map(x: f32, y: f32, url: Option<&str>) -> networking::ClientCommandEvent {
+  let url = match url {
+    Some(x) => x,
+    None => &"https://api.open5e.com/static/img/monsters/hezrou.png"
+  };
+  networking::ClientCommandEvent{
+      order: orders::OrderEvent{
+        command: orders::Command::CreateMap(orders::CreateMapCommand{
+          x,
+          y,
+          id: baseplate::ID(baseplate::get_new_id()),
+          url: url.to_string(),
+        })
+      },
+      reliability: networking::NetworkReliability::Reliable,
+    }
 }

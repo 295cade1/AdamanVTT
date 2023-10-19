@@ -32,7 +32,7 @@ fn open_socket(mut commands: Commands) {
 
 fn deal_with_connections(mut connection: ResMut<MatchboxSocket<MultipleChannels>>){
     let updated_peers = match connection.try_update_peers() {
-        Err(_x) => panic!("TODO DEAL WITH DISCONNECTED"),
+        Err(_x) => panic!("Disconnected from server"),
         Ok(x) => x,
     };
     for (peer_id, peer_state) in updated_peers {
@@ -76,10 +76,10 @@ fn split_client_events(
 ) {
     for ev in ev_client.iter() {
         ev_networked.send(NetworkedCommandEvent{
-            order: ev.order,
+            order: ev.order.clone(),
             reliability: ev.reliability,
         });
-        ev_order.send(ev.order);
+        ev_order.send(ev.order.clone());
     }
 }
 
@@ -91,7 +91,7 @@ fn send_networked_events(
         let ids = Vec::from_iter(connection.connected_peers());
         for peer_id in ids {
             let packet = NetworkPacket{
-                order: ev.order,
+                order: ev.order.clone(),
             };
             let arr = to_stdvec(&packet).unwrap().into_boxed_slice();
             let channel = match ev.reliability {
