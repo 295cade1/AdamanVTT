@@ -80,10 +80,7 @@ fn get_plane_intersection(ray: Ray, plane_origin: Vec3, plane_normal: Vec3) -> O
 
 //UI funcs
 pub fn create_token(x: f32, y: f32, url: Option<&str>) -> networking::ClientCommandEvent {
-  let url = match url {
-    Some(x) => x,
-    None => "https://api.open5e.com/static/img/monsters/hezrou.png"
-  };
+  let url = url.unwrap_or("https://api.open5e.com/static/img/monsters/hezrou.png");
   networking::ClientCommandEvent{
       order: orders::OrderEvent{
         command: orders::Command::CreateToken(orders::CreateTokenCommand{
@@ -98,10 +95,7 @@ pub fn create_token(x: f32, y: f32, url: Option<&str>) -> networking::ClientComm
 }
 
 pub fn create_map(x: f32, y: f32, url: Option<&str>) -> networking::ClientCommandEvent {
-  let url = match url {
-    Some(x) => x,
-    None => &"https://api.open5e.com/static/img/monsters/hezrou.png"
-  };
+  let url = url.unwrap_or("https://api.open5e.com/static/img/monsters/hezrou.png");
   networking::ClientCommandEvent{
       order: orders::OrderEvent{
         command: orders::Command::CreateMap(orders::CreateMapCommand{

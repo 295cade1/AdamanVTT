@@ -36,6 +36,7 @@ impl MapBundle {
   }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn modify_map_sizes(
   mut commands: Commands,
   mut ev_asset: EventReader<AssetEvent<Image>>,
