@@ -90,7 +90,7 @@ fn send_networked_events(
     for ev in ev_networked.iter() {
         let ids = Vec::from_iter(connection.connected_peers());
         for peer_id in ids {
-            let packet = NetworkPacketwarn{
+            let packet = NetworkPacket{
                 order: ev.order.clone(),
             };
             let arr = to_stdvec(&packet).unwrap().into_boxed_slice();

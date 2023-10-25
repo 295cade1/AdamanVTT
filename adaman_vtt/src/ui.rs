@@ -28,6 +28,7 @@ struct UIState{
 }
 
 fn ui(
+  commands: Commands,
   mut contexts: EguiContexts,
   mut ev_client: EventWriter<networking::ClientCommandEvent>,
   mut ui_state: ResMut<UIState>,
@@ -44,6 +45,10 @@ fn ui(
       let create_map_btn = ui.button("Create Map");
       if create_map_btn.clicked() {
         ev_client.send(input::create_map(0., 0., Some(&ui_state.map_url)));
+      }
+      let create_map_file_btn = ui.button("Create Map from file");
+      if create_map_file_btn.clicked() {
+        input::create_map_from_file(commands, 0., 0.);
       }
   });
 }

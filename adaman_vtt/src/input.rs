@@ -1,5 +1,12 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    tasks::{AsyncComputeTaskPool, Task},
+};
 use bevy_mod_picking::prelude::*;
+use futures_lite::future;
+use std::path::PathBuf;
+use rfd::FileDialog;
+use std::fs;
 
 use crate::networking;
 use crate::orders;
@@ -10,6 +17,7 @@ pub struct InputPlugin;
 impl Plugin for InputPlugin {
   fn build(&self, app: &mut App) {
     app.add_event::<TokenDragEvent>()
+        .add_systems(Update, poll_for_map)
         .add_systems(Update, recieve_dragging_tokens.before(orders::recieve_orders));
   }
 }
@@ -80,6 +88,7 @@ fn get_plane_intersection(ray: Ray, plane_origin: Vec3, plane_normal: Vec3) -> O
 
 //UI funcs
 pub fn create_token(x: f32, y: f32, url: Option<&str>) -> networking::ClientCommandEvent {
+
   let url = url.unwrap_or("https://api.open5e.com/static/img/monsters/hezrou.png");
   networking::ClientCommandEvent{
       order: orders::OrderEvent{
@@ -107,4 +116,40 @@ pub fn create_map(x: f32, y: f32, url: Option<&str>) -> networking::ClientComman
       },
       reliability: networking::NetworkReliability::Reliable,
     }
+}
+
+#[derive(Component)]
+pub struct MapFile {
+  file: Task<Option<PathBuf>>,
+  x: f32,
+  y: f32,
+}
+
+pub fn create_map_from_file(mut commands: Commands, x: f32, y: f32) {
+  let thread_pool = AsyncComputeTaskPool::get();
+  let task = thread_pool.spawn(async move {
+    FileDialog::new()
+      .add_filter("image", &["png", "jpg"])
+      .add_filter("universalVTT", &["dd2vtt", "json"])
+      .pick_file() 
+  });
+  commands.spawn(MapFile{
+    file: task,
+    x,
+    y,
+  });
+}
+
+pub fn poll_for_map(mut commands: Commands, mut tasks: Query<(Entity, &mut MapFile)>) {
+  for (entity, mut selected_file) in tasks.iter_mut() {
+    if let Some(result) = future::block_on(future::poll_once(&mut selected_file.file)) {
+      commands.entity(entity).remove::<MapFile>();
+      println!("{:?}", result);
+      let contents = fs::read_to_string(result.unwrap())
+        .expect("Should have been able to read the file");
+      contents.
+      println!("{:?}", contents);
+
+    }
+  }
 }

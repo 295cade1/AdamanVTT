@@ -41,25 +41,6 @@
               }
             }
           }
-        ],
-        "currentTab": 1
-      },
-      {
-        "id": "1a6a53a74cb5644b",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "0491184de77e94c5",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Camera Movement.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          }
         ]
       }
     ],
@@ -126,7 +107,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Kanban Board.md",
+                "file": "Saving.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -143,7 +124,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Kanban Board.md",
+                "file": "Saving.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -166,7 +147,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Kanban Board.md"
+                "file": "Saving.md"
               }
             }
           },
@@ -197,11 +178,14 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "d41d9e993a1cead4",
+  "active": "dece9957c2d0743d",
   "lastOpenFiles": [
-    "Rework Network Events.md",
+    "Movement.md",
+    "Untitled 1.md",
     "Kanban Board.md",
     "Camera Movement.md",
+    "Untitled.md",
+    "Rework Network Events.md",
     "Time Tracking.md",
     "Manual Token Data Entry.md",
     "Saving.md",
@@ -214,7 +198,6 @@
     "Main.md",
     "Saving 1.md",
     "Encounter Data.md",
-    "Creating Tokens From Data.md",
-    "Movement.md"
+    "Creating Tokens From Data.md"
   ]
 }

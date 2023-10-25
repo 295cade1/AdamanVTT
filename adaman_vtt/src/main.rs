@@ -12,6 +12,7 @@ mod input;
 mod maps;
 mod baseplate;
 mod camera;
+mod filetransfer;
 
 fn main() {
   App::new() 

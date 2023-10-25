@@ -16,22 +16,20 @@ kanban-plugin: basic
 
 ## TODO
 
+- [ ] [[Camera Movement]]
 - [ ] [[Map Data]]
 - [ ] [[Token Data]]
 
 
 ## Inwork
 
-**Complete**
-- [x] [[Camera Movement]]
+- [x] Complete Presentation 2
+- [x] Map Uploading
 
 
 ## Complete
 
 **Complete**
-- [x] [[Creating Maps]]
-- [x] [[Creating Tokens]]
-- [x] [[Basic Token Movement]]
 
 
 ***
@@ -39,6 +37,9 @@ kanban-plugin: basic
 ## Archive
 
 - [x] Complete Movement of tokens
+- [x] [[Creating Maps]]
+- [x] [[Creating Tokens]]
+- [x] [[Basic Token Movement]]
 
 %% kanban:settings
 ```
