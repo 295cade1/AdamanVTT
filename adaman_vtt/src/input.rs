@@ -3,14 +3,17 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task},
 };
 use bevy_mod_picking::prelude::*;
+
 use futures_lite::future;
 use std::path::PathBuf;
 use rfd::FileDialog;
 use std::fs;
+use serde::{Serialize, Deserialize};
 
 use crate::networking;
 use crate::orders;
 use crate::baseplate;
+use crate::maps;
 
 pub struct InputPlugin;
 
@@ -147,9 +150,9 @@ pub fn poll_for_map(mut commands: Commands, mut tasks: Query<(Entity, &mut MapFi
       println!("{:?}", result);
       let contents = fs::read_to_string(result.unwrap())
         .expect("Should have been able to read the file");
-      contents.
       println!("{:?}", contents);
-
+      let deserialized: maps::RawMapData = serde_json::from_str(contents.as_str()).unwrap();
+      println!("{:?}", deserialized.image);
     }
   }
 }

@@ -17,6 +17,7 @@ futures-lite = "2.0.0"
 postcard = { version = "1.0.7", features = ["use-std"] }
 rfd = "0.12.1"
 serde = { version = "1.0.188", features = ["derive"] }
+serde_json = "1.0.107"
 uuid = { version = "1.4.1", features = ["v1", "v8", "rng", "v6"] }
 
 # Enable a small amount of optimization in debug mode
