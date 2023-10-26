@@ -41,7 +41,8 @@
               }
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -107,7 +108,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Saving.md",
+                "file": "Kanban Board.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -124,7 +125,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Saving.md",
+                "file": "Kanban Board.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -147,7 +148,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Saving.md"
+                "file": "Kanban Board.md"
               }
             }
           },
@@ -178,8 +179,9 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "dece9957c2d0743d",
+  "active": "d41d9e993a1cead4",
   "lastOpenFiles": [
+    "Saving.md",
     "Movement.md",
     "Untitled 1.md",
     "Kanban Board.md",
@@ -188,7 +190,6 @@
     "Rework Network Events.md",
     "Time Tracking.md",
     "Manual Token Data Entry.md",
-    "Saving.md",
     "Map Data.md",
     "Creating Tokens.md",
     "Creating Maps.md",

@@ -10,26 +10,26 @@ kanban-plugin: basic
 - [x] [[Creating Tokens From Data]]
 - [x] [[Manual Token Data Entry]]
 - [x] [[Encounter Data]]
-- [x] [[Saving]]
 - [x] [[Rework Network Events]]
 
 
 ## TODO
 
 - [ ] [[Camera Movement]]
-- [ ] [[Map Data]]
+- [ ] [[Saving]]
 - [ ] [[Token Data]]
 
 
 ## Inwork
 
-- [x] Complete Presentation 2
+- [ ] [[Map Data]]
 - [x] Map Uploading
 
 
 ## Complete
 
 **Complete**
+- [x] Complete Presentation 2
 
 
 ***
