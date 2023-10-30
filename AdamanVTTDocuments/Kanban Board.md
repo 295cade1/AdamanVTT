@@ -23,7 +23,7 @@ kanban-plugin: basic
 ## Inwork
 
 - [ ] [[Map Data]]
-- [x] Map Uploading
+- [x] [[Map Uploading]]
 
 
 ## Complete

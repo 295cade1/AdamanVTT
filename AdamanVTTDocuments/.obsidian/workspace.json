@@ -40,9 +40,24 @@
                 "source": false
               }
             }
+          },
+          {
+            "id": "0e3a3e266cfd2cf7",
+            "type": "leaf",
+            "state": {
+              "type": "canvas",
+              "state": {
+                "file": "Map Loading.canvas",
+                "viewState": {
+                  "x": -585.9000000000024,
+                  "y": -308.75999999999954,
+                  "zoom": 0
+                }
+              }
+            }
           }
         ],
-        "currentTab": 1
+        "currentTab": 3
       }
     ],
     "direction": "vertical"
@@ -108,7 +123,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Kanban Board.md",
+                "file": "Map Loading.canvas",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -125,7 +140,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Kanban Board.md",
+                "file": "Map Loading.canvas",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -148,7 +163,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Kanban Board.md"
+                "file": "Map Loading.canvas"
               }
             }
           },
@@ -179,15 +194,17 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "d41d9e993a1cead4",
+  "active": "0e3a3e266cfd2cf7",
   "lastOpenFiles": [
+    "Map Uploading.md",
+    "Map Loading.canvas",
+    "Kanban Board.md",
+    "Rework Network Events.md",
     "Saving.md",
     "Movement.md",
     "Untitled 1.md",
-    "Kanban Board.md",
     "Camera Movement.md",
     "Untitled.md",
-    "Rework Network Events.md",
     "Time Tracking.md",
     "Manual Token Data Entry.md",
     "Map Data.md",

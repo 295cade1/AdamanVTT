@@ -16,25 +16,25 @@ mod filetransfer;
 
 fn main() {
   App::new() 
-      .add_plugins(RemoteAssetPlugin)
-      .add_plugins(
-        DefaultPlugins.set(WindowPlugin {
-          primary_window: Some(Window {
-            fit_canvas_to_parent: true,
-            prevent_default_event_handling: false,
-            ..default()
-        }),
+    .add_plugins(RemoteAssetPlugin)
+    .add_plugins(
+      DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+          fit_canvas_to_parent: true,
+          prevent_default_event_handling: false,
           ..default()
-        })
-      )
-      .add_plugins(input::InputPlugin)
-      .add_plugins(camera::CameraPlugin)
-      .add_plugins(DefaultPickingPlugins)
-      .add_plugins(ui::UIPlugin)
-      .add_plugins(startup::GameStartPlugin)
-      .add_plugins(networking::NetworkingPlugin)
-      .add_plugins(orders::OrdersPlugin)
-      .add_plugins(maps::MapPlugin)
-      .run();
+        }),
+        ..default()
+      })
+    )
+    .add_plugins(input::InputPlugin)
+    .add_plugins(camera::CameraPlugin)
+    .add_plugins(DefaultPickingPlugins)
+    .add_plugins(ui::UIPlugin)
+    .add_plugins(startup::GameStartPlugin)
+    .add_plugins(networking::NetworkingPlugin)
+    .add_plugins(orders::OrdersPlugin)
+    .add_plugins(maps::MapPlugin)
+    .run();
 }
 
