@@ -24,6 +24,8 @@ kanban-plugin: basic
 
 - [ ] [[Map Data]]
 - [x] [[Map Uploading]]
+- [ ] Revamp Networking to allow to send to one peer ID and get which peer ID sent the request
+- [ ] Implement Save Bank
 
 
 ## Complete
