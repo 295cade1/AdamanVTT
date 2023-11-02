@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::baseplate;
 use crate::maps;
 use crate::tokens;
+use crate::bank;
 
 pub struct OrdersPlugin;
 
@@ -19,6 +20,7 @@ impl Plugin for OrdersPlugin {
             .add_systems(Update, recieve_create_map.after(recieve_orders));
     }
 }
+
 #[derive(Event, Serialize, Deserialize, Clone)]
 pub struct OrderEvent {
     pub command: Command,
@@ -97,7 +99,8 @@ fn recieve_create_token(
 pub struct CreateMapCommand {
     pub x: f32,
     pub y: f32,
-    pub id: maps::MapId,
+    pub map_id: maps::MapId,
+    pub data_id: bank::DataId,
 }
 
 fn recieve_create_map(
@@ -109,7 +112,7 @@ fn recieve_create_map(
 ) {
     for ev in ev_create_map.iter() {
         commands.spawn(maps::MapBundle::new(
-            ev.id,
+            ev.map_id,
             Vec3::new(ev.x, 0., ev.y),
             &mut meshes,
             &mut materials,

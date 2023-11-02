@@ -14,6 +14,7 @@ mod startup;
 mod tokens;
 mod ui;
 mod bank;
+mod fileload;
 
 mod dd2vtt;
 

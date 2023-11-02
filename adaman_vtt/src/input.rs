@@ -183,8 +183,9 @@ pub fn poll_for_map(
             continue;
         };
 
+        let id = bank::get_new_id();
         //Insert the file data into the bank
-        bank.insert_map(&maps::get_new_id(), data);
+        bank.insert_data(&id, serde_json::to_vec(&data).ok().unwrap());
 
         //Send the packet to the other peers to have them create the map
         ev_client.send(networking::ClientCommandEvent {
@@ -192,7 +193,8 @@ pub fn poll_for_map(
                 command: orders::Command::CreateMap(orders::CreateMapCommand {
                     x: 0.,
                     y: 0.,
-                    id: maps::get_new_id(),
+                    data_id: id,
+                    map_id: maps::get_new_id(),
                 }),
             },
             reliability: networking::NetworkReliability::Reliable,
