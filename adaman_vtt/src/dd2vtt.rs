@@ -3,17 +3,22 @@ use base64::{Engine as _, engine::general_purpose};
 
 use crate::maps;
 
-impl Into<maps::MapData> for DD2VTT {
-    fn into(self) -> maps::MapData {
+impl From<DD2VTT> for maps::MapData {
+    fn from(x: DD2VTT) -> Self {
         maps::MapData{
-            format: self.format,
-            image: decode_img(self.image),
+            format: x.format,
+            image: decode_img(x.image),
+            grid: maps::MapGrid{
+                pixels_per: x.resolution.pixels_per_grid,
+                width: x.resolution.map_size.x,
+                height: x.resolution.map_size.y,
+            }
         }
     }
 }
 
-fn decode_img(img: String) -> Vec<u8> {
-    general_purpose::STANDARD_NO_PAD.decode(img).unwrap()
+fn decode_img(img: String) -> Vec<u8>{
+    general_purpose::STANDARD.decode(img).unwrap()
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

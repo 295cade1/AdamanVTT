@@ -19,8 +19,8 @@ impl Plugin for FileLoad {
 
 #[derive(Event, Serialize, Deserialize, Clone)]
 pub struct LoadRequest {
-    data_id: bank::DataId,
-    endpoint: FileEndpoint,
+    pub data_id: bank::DataId,
+    pub endpoint: FileEndpoint,
 }
 
 #[derive(Event, Serialize, Deserialize, Clone)]
@@ -34,7 +34,6 @@ pub struct SuccessfulLoad {
 pub enum FileEndpoint {
     Map(maps::MapId),
 }
-
 
 pub fn recieve_request(
     mut ev_load: EventReader<LoadRequest>,

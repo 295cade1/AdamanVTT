@@ -5,6 +5,7 @@ use crate::baseplate;
 use crate::maps;
 use crate::tokens;
 use crate::bank;
+use crate::fileload;
 
 pub struct OrdersPlugin;
 
@@ -108,7 +109,7 @@ fn recieve_create_map(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    asset_server: Res<AssetServer>,
+    mut ev_load: EventWriter<fileload::LoadRequest>,
 ) {
     for ev in ev_create_map.iter() {
         commands.spawn(maps::MapBundle::new(
@@ -116,7 +117,12 @@ fn recieve_create_map(
             Vec3::new(ev.x, 0., ev.y),
             &mut meshes,
             &mut materials,
-            &asset_server,
         ));
+        ev_load.send(
+            fileload::LoadRequest{
+                data_id: ev.data_id,
+                endpoint: fileload::FileEndpoint::Map(ev.map_id),
+            }
+        )
     }
 }

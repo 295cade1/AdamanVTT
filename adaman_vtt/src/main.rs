@@ -29,6 +29,7 @@ fn main() {
             }),
             ..default()
         }))
+        .add_plugins(fileload::FileLoad)
         .add_plugins(bank::BankPlugin)
         .add_plugins(input::InputPlugin)
         .add_plugins(camera::CameraPlugin)

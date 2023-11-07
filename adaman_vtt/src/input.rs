@@ -155,7 +155,7 @@ pub fn poll_for_map(
             continue;
         };
 
-        println!("{:?}", result);
+        //println!("{:?}", result);
         commands.entity(entity).remove::<MapFile>();
 
         //Make sure it's like a real thing
@@ -163,14 +163,14 @@ pub fn poll_for_map(
             continue;
         };
 
-        println!("{:?}", path);
+        //println!("{:?}", path);
 
         //Read the file
         let Ok(contents) = fs::read_to_string(path) else {
             continue;
         };
 
-        println!("{:?}", contents);
+        //println!("{:?}", contents);
 
         //Deserialize it into the RawMapData
         let mut data: Option<maps::MapData> = None;
