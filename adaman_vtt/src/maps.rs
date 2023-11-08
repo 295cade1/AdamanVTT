@@ -2,9 +2,9 @@ use bevy::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
-use std::sync::Arc;
 use image::io::Reader as ImageReader;
 use std::io::Cursor;
+use std::sync::Arc;
 
 pub struct MapPlugin;
 
@@ -79,11 +79,14 @@ pub struct MapGrid {
     pub height: i64,
 }
 
+#[derive(Serialize, Deserialize, Clone, Copy, Component, Eq, Hash, PartialEq)]
+pub struct MapLoaded;
+
 #[allow(clippy::type_complexity)]
 pub fn load_map(
     mut commands: Commands,
     mut ev_map_load: EventReader<MapLoad>,
-    mut maps: Query<(&Handle<Mesh>, &Handle<StandardMaterial>, Entity, &MapId)>,
+    mut maps: Query<(&Handle<Mesh>, &Handle<StandardMaterial>, Entity, &MapId, Without<MapLoaded>)>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -109,6 +112,9 @@ pub fn load_map(
         for map in maps.iter_mut() {
             //Check if the id matches
             if *map.3 == ev.map_id {
+
+                commands.entity(map.2).insert(MapLoaded);
+
                 let Some(mat) = materials.get_mut(map.1) else {
                     println!("Failed to get mat");
                     continue;

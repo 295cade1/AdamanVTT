@@ -15,22 +15,20 @@ impl Plugin for UIPlugin {
 }
 
 fn init_ui(mut commands: Commands) {
-    let ui_state = UIState {
-        map_url: "".to_string(),
-    };
+    let ui_state = UIState {};
     commands.insert_resource(ui_state);
 }
 
 #[derive(Resource)]
 struct UIState {
-    map_url: String,
+
 }
 
 fn ui(
     commands: Commands,
     mut contexts: EguiContexts,
     mut ev_client: EventWriter<networking::ClientCommandEvent>,
-    mut ui_state: ResMut<UIState>,
+    mut _ui_state: ResMut<UIState>,
 ) {
     egui::SidePanel::right("Token Creation")
         .default_width(200.0)

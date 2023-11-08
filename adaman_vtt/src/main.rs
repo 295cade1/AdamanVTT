@@ -29,8 +29,9 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins(fileload::FileLoad)
         .add_plugins(bank::BankPlugin)
+        .add_plugins(filetransfer::FileTransfer)
+        .add_plugins(fileload::FileLoad)
         .add_plugins(input::InputPlugin)
         .add_plugins(camera::CameraPlugin)
         .add_plugins(DefaultPickingPlugins)

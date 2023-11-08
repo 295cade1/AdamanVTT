@@ -5,6 +5,7 @@ use serde::Serialize;
 
 use crate::bank;
 use crate::maps;
+use crate::filetransfer;
 
 pub struct FileLoad;
 
@@ -17,16 +18,22 @@ impl Plugin for FileLoad {
     }
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct LoadIdentifier{
+    pub data_id: bank::DataId,
+    pub size: usize,
+    pub hash: u64,
+}
+
 #[derive(Event, Serialize, Deserialize, Clone)]
 pub struct LoadRequest {
-    pub data_id: bank::DataId,
+    pub id: LoadIdentifier,
     pub endpoint: FileEndpoint,
 }
 
 #[derive(Event, Serialize, Deserialize, Clone)]
 pub struct SuccessfulLoad {
-    data_id: bank::DataId,
-    endpoint: FileEndpoint,
+    request: LoadRequest,
     data: Arc<Vec<u8>>,
 }
 
@@ -38,17 +45,18 @@ pub enum FileEndpoint {
 pub fn recieve_request(
     mut ev_load: EventReader<LoadRequest>,
     mut ev_success: EventWriter<SuccessfulLoad>,
+    mut load_queue: ResMut<filetransfer::LoadQueue>,
     bank: Res<bank::Bank>
 ) {
     for ld_ev in ev_load.iter() {
-        if let Some(data) = bank.request_data(&ld_ev.data_id) {
+        if let Some(data) = bank.request_data(&ld_ev.id.data_id) {
             ev_success.send(SuccessfulLoad{
-                data_id: ld_ev.data_id,
-                endpoint: ld_ev.endpoint,
+                request: ld_ev.clone(),
                 data: data.clone(),
             })
         }else{
-            //TODO Network Loading
+            //If we don't have it in the bank, put it into the queue to load from the network
+            load_queue.add(ld_ev.clone());
         }
     }
 }
@@ -58,7 +66,7 @@ pub fn process_successful_load(
     mut ev_map_load: EventWriter<maps::MapLoad>,
 ) {
     for succ_ev in ev_success.iter() {
-        match succ_ev.endpoint {
+        match succ_ev.request.endpoint {
             FileEndpoint::Map(id) => ev_map_load.send(maps::MapLoad{
                 map_id: id,
                 data: succ_ev.data.clone(),

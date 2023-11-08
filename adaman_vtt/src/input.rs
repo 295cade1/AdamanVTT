@@ -15,6 +15,7 @@ use crate::networking;
 use crate::bank;
 use crate::orders;
 use crate::dd2vtt;
+use crate::fileload;
 
 pub struct InputPlugin;
 
@@ -79,7 +80,6 @@ fn recieve_dragging_tokens(
                     }),
                 },
                 reliability: networking::NetworkReliability::Reliable,
-                peer_id: networking::RecepientPeer::All,
             })
         }
     }
@@ -116,7 +116,6 @@ pub fn create_token(x: f32, y: f32, url: Option<&str>) -> networking::ClientComm
             }),
         },
         reliability: networking::NetworkReliability::Reliable,
-        peer_id: networking::RecepientPeer::All,
     }
 }
 
@@ -185,7 +184,12 @@ pub fn poll_for_map(
 
         let id = bank::get_new_id();
         //Insert the file data into the bank
-        bank.insert_data(&id, serde_json::to_vec(&data).ok().unwrap());
+        let data = serde_json::to_vec(&data).ok().unwrap();
+
+        let size = data.len();
+        let hash = data.reflect_hash().expect("Unable to hash vec<u8>");
+
+        bank.insert_data(&id, data.into());
 
         //Send the packet to the other peers to have them create the map
         ev_client.send(networking::ClientCommandEvent {
@@ -193,12 +197,15 @@ pub fn poll_for_map(
                 command: orders::Command::CreateMap(orders::CreateMapCommand {
                     x: 0.,
                     y: 0.,
-                    data_id: id,
+                    data_id: fileload::LoadIdentifier{
+                        data_id: id,
+                        size,
+                        hash,
+                    },
                     map_id: maps::get_new_id(),
                 }),
             },
             reliability: networking::NetworkReliability::Reliable,
-            peer_id: networking::RecepientPeer::All,
         });
     }
 }

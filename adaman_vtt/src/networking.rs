@@ -77,7 +77,7 @@ pub enum NetworkReliability {
 }
 
 #[derive(Event, Serialize, Deserialize)]
-struct NetworkedCommandEvent {
+pub struct NetworkedCommandEvent {
     pub order: orders::OrderEvent,
     pub reliability: NetworkReliability,
     pub peer_id: RecepientPeer,
@@ -92,7 +92,6 @@ struct NetworkPacket {
 pub struct ClientCommandEvent {
     pub order: orders::OrderEvent,
     pub reliability: NetworkReliability,
-    pub peer_id: RecepientPeer,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
@@ -108,7 +107,6 @@ impl RecepientPeer {
             RecepientPeer::Peer(x) => x == id,
         }
     }
-
 }
 
 //Split the events from the client into events to be networked
@@ -122,7 +120,7 @@ fn split_client_events(
         ev_networked.send(NetworkedCommandEvent {
             order: ev.order.clone(),
             reliability: ev.reliability,
-            peer_id: ev.peer_id,
+            peer_id: RecepientPeer::All,
         });
         ev_order.send(ev.order.clone());
     }

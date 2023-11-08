@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::baseplate;
 use crate::maps;
 use crate::tokens;
-use crate::bank;
 use crate::fileload;
+use crate::filetransfer;
 
 pub struct OrdersPlugin;
 
@@ -17,6 +17,8 @@ impl Plugin for OrdersPlugin {
             .add_systems(Update, recieve_move.after(recieve_orders))
             .add_event::<CreateTokenCommand>()
             .add_systems(Update, recieve_create_token.after(recieve_orders))
+            .add_event::<RequestDataCommand>()
+            .add_systems(Update, recieve_request_data.after(recieve_orders))
             .add_event::<CreateMapCommand>()
             .add_systems(Update, recieve_create_map.after(recieve_orders));
     }
@@ -32,6 +34,7 @@ pub enum Command {
     Move(MoveCommand),
     CreateToken(CreateTokenCommand),
     CreateMap(CreateMapCommand),
+    RequestData(RequestDataCommand),
 }
 
 pub fn recieve_orders(
@@ -39,12 +42,14 @@ pub fn recieve_orders(
     mut ev_move: EventWriter<MoveCommand>,
     mut ev_create_token: EventWriter<CreateTokenCommand>,
     mut ev_create_map: EventWriter<CreateMapCommand>,
+    mut ev_request_data: EventWriter<RequestDataCommand>,
 ) {
     for ord_ev in ev_orders.iter() {
         match &ord_ev.command {
             Command::Move(cmd) => ev_move.send(*cmd),
             Command::CreateToken(cmd) => ev_create_token.send(cmd.clone()),
             Command::CreateMap(cmd) => ev_create_map.send(cmd.clone()),
+            Command::RequestData(cmd) => ev_request_data.send(cmd.clone()),
         }
     }
 }
@@ -101,7 +106,7 @@ pub struct CreateMapCommand {
     pub x: f32,
     pub y: f32,
     pub map_id: maps::MapId,
-    pub data_id: bank::DataId,
+    pub data_id: fileload::LoadIdentifier,
 }
 
 fn recieve_create_map(
@@ -120,9 +125,24 @@ fn recieve_create_map(
         ));
         ev_load.send(
             fileload::LoadRequest{
-                data_id: ev.data_id,
+                id: ev.data_id.clone(),
                 endpoint: fileload::FileEndpoint::Map(ev.map_id),
             }
         )
+    }
+}
+
+#[derive(Event, Serialize, Deserialize, Clone)]
+pub struct RequestDataCommand {
+    pub section: filetransfer::DataSectionIdentifier,
+}
+
+fn recieve_request_data(
+    mut ev_request_data: EventReader<RequestDataCommand>,
+) {
+    for ev in ev_request_data.iter() {
+        let start = ev.section.start;
+        let end = ev.section.end;
+        println!("Requested Data {start} - {end}");
     }
 }

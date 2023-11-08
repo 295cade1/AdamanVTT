@@ -31,7 +31,6 @@ kanban-plugin: basic
 ## Complete
 
 **Complete**
-- [x] Complete Presentation 2
 
 
 ***
@@ -42,6 +41,7 @@ kanban-plugin: basic
 - [x] [[Creating Maps]]
 - [x] [[Creating Tokens]]
 - [x] [[Basic Token Movement]]
+- [x] Complete Presentation 2
 
 %% kanban:settings
 ```

@@ -35,14 +35,14 @@ fn setup_bank(
 
 impl Bank {
     pub fn request_data(&self, id: &DataId) -> Option<&Arc<Vec<u8>>> {
-        self.data.get(id)
+        self.data.get(id) 
     }
 
     pub fn contains_data(&self, id: &DataId) -> bool {
         self.data.contains_key(id)
     }
 
-    pub fn insert_data(&mut self, id: &DataId, data: Vec<u8>) {
-        self.data.insert(*id, Arc::new(data));
+    pub fn insert_data(&mut self, id: &DataId, data: Arc<Vec<u8>>) {
+        self.data.insert(*id, data);
     }
 }

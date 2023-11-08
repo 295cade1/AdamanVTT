@@ -23,10 +23,9 @@ impl BaseplateBundle {
         size: Vec2,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,
-        asset_server: &Res<AssetServer>,
+        _asset_server: &Res<AssetServer>,
     ) -> BaseplateBundle {
 
-        //TODO: ADD LOADING TEX HERE
         let bg_quad = shape::Quad {
             size: Vec2 {
                 x: size.x,
