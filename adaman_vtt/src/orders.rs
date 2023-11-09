@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
+use bevy_matchbox::prelude::PeerId;
 
 use crate::baseplate;
 use crate::maps;
@@ -18,7 +19,9 @@ impl Plugin for OrdersPlugin {
             .add_event::<CreateTokenCommand>()
             .add_systems(Update, recieve_create_token.after(recieve_orders))
             .add_event::<RequestDataCommand>()
-            .add_systems(Update, recieve_request_data.after(recieve_orders))
+            .add_systems(Update, recieve_data_request.after(recieve_orders))
+            .add_event::<RequestUploadLockCommand>()
+            .add_systems(Update, recieve_upload_request.after(recieve_orders))
             .add_event::<CreateMapCommand>()
             .add_systems(Update, recieve_create_map.after(recieve_orders));
     }
@@ -35,6 +38,7 @@ pub enum Command {
     CreateToken(CreateTokenCommand),
     CreateMap(CreateMapCommand),
     RequestData(RequestDataCommand),
+    RequestUploadLock(RequestUploadLockCommand),
 }
 
 pub fn recieve_orders(
@@ -43,6 +47,7 @@ pub fn recieve_orders(
     mut ev_create_token: EventWriter<CreateTokenCommand>,
     mut ev_create_map: EventWriter<CreateMapCommand>,
     mut ev_request_data: EventWriter<RequestDataCommand>,
+    mut ev_request_upload_lock: EventWriter<RequestUploadLockCommand>,
 ) {
     for ord_ev in ev_orders.iter() {
         match &ord_ev.command {
@@ -50,6 +55,7 @@ pub fn recieve_orders(
             Command::CreateToken(cmd) => ev_create_token.send(cmd.clone()),
             Command::CreateMap(cmd) => ev_create_map.send(cmd.clone()),
             Command::RequestData(cmd) => ev_request_data.send(cmd.clone()),
+            Command::RequestUploadLock(cmd) => ev_request_upload_lock.send(cmd.clone()),
         }
     }
 }
@@ -133,11 +139,28 @@ fn recieve_create_map(
 }
 
 #[derive(Event, Serialize, Deserialize, Clone)]
+pub struct RequestUploadLockCommand {
+    pub request: fileload::LoadRequest,
+    pub peer_id: PeerId,
+}
+
+fn recieve_upload_request(
+    mut ev_order: EventReader<RequestUploadLockCommand>,
+    mut ev_pass: EventWriter<filetransfer::UploadRequest>,
+) {
+    for ev in ev_order.iter() {
+        ev_pass.send(filetransfer::UploadRequest{
+            request: ev.request.clone(),
+        })
+    }
+}
+
+#[derive(Event, Serialize, Deserialize, Clone)]
 pub struct RequestDataCommand {
     pub section: filetransfer::DataSectionIdentifier,
 }
 
-fn recieve_request_data(
+fn recieve_data_request(
     mut ev_request_data: EventReader<RequestDataCommand>,
 ) {
     for ev in ev_request_data.iter() {

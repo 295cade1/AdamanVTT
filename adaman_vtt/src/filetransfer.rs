@@ -18,6 +18,8 @@ impl Plugin for FileTransfer {
             .add_systems(Update, handle_load_queue)
             .add_systems(Update, download_file)
             .add_systems(Update, complete_download)
+            .add_event::<UploadRequest>()
+            .add_systems(Update, lock_upload)
             .insert_resource(DownloadState{state: None});
     }
 }
@@ -174,6 +176,22 @@ pub fn download_file(
             })
         }
     } 
+}
+
+#[derive(Event)]
+pub struct UploadRequest{
+    pub request: fileload::LoadRequest,
+}
+
+pub fn lock_upload(
+    mut ev_upload_request: EventReader<UploadRequest>,
+    mut upload_state: ResMut<UploadState>,
+) {
+    for ev in ev_upload_request.iter() {
+        if upload_state.state.is_none() {
+            //upload_state.state
+        }
+    }
 }
 
 #[derive(Resource)]
