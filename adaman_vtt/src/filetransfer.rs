@@ -110,13 +110,13 @@ pub struct FileDownload{
     data: Vec<u8>,
 }
 
-const REQUEST_BYTES: usize = 1024;
+const REQUEST_BYTES: usize = 8192;
 
 impl FileDownload{
     fn new(value: fileload::LoadRequest) -> Self {
         let mut sections = Vec::<DataSectionIdentifier>::new();
 
-        for i in 0..(value.id.size % REQUEST_BYTES) {
+        for i in 0..=(value.id.size / REQUEST_BYTES) {
             let start = i * REQUEST_BYTES;
             let end = min(start + REQUEST_BYTES, value.id.size);
             sections.push(DataSectionIdentifier{
@@ -328,8 +328,9 @@ pub fn recieve_data_request(
             let correct_peer_id = upload.target_peer_id;
             println!("Data request from wrong peer id: {wrong_peer_id} Locked to: {correct_peer_id}");
         }
+
         let Some(data) = upload.file.get(ev.section.start..ev.section.end) else {
-            println!("requested data outside bounds");
+            println!("requested data outside bounds. File Size: {:?} : Requested: {:?} - {:?} : Index: {:?}", upload.file.len(), ev.section.start, ev.section.end, ev.section.index);
             continue;
         };
         ev_networked.send(
