@@ -1,6 +1,8 @@
 use bevy::prelude::*;
+use bevy::window::RequestRedraw;
 use serde::{Deserialize, Serialize};
 use bevy_matchbox::prelude::PeerId;
+use std::sync::Arc;
 
 use crate::baseplate;
 use crate::maps;
@@ -22,6 +24,10 @@ impl Plugin for OrdersPlugin {
             .add_systems(Update, recieve_data_request.after(recieve_orders))
             .add_event::<RequestUploadLockCommand>()
             .add_systems(Update, recieve_upload_request.after(recieve_orders))
+            .add_event::<SuccessfulUploadLockedCommand>()
+            .add_systems(Update, recieve_successful_upload_lock.after(recieve_orders))
+            .add_event::<RecieveDataCommand>()
+            .add_systems(Update, recieve_recieve_data.after(recieve_orders))
             .add_event::<CreateMapCommand>()
             .add_systems(Update, recieve_create_map.after(recieve_orders));
     }
@@ -39,8 +45,11 @@ pub enum Command {
     CreateMap(CreateMapCommand),
     RequestData(RequestDataCommand),
     RequestUploadLock(RequestUploadLockCommand),
+    SuccessfulUploadLock(SuccessfulUploadLockedCommand),
+    RecieveData(RecieveDataCommand),
 }
 
+#[warn(clippy::too_many_arguments)]
 pub fn recieve_orders(
     mut ev_orders: EventReader<OrderEvent>,
     mut ev_move: EventWriter<MoveCommand>,
@@ -48,14 +57,27 @@ pub fn recieve_orders(
     mut ev_create_map: EventWriter<CreateMapCommand>,
     mut ev_request_data: EventWriter<RequestDataCommand>,
     mut ev_request_upload_lock: EventWriter<RequestUploadLockCommand>,
+    mut ev_successful_upload_locked: EventWriter<SuccessfulUploadLockedCommand>,
+    mut ev_recieve_data: EventWriter<RecieveDataCommand>,
 ) {
     for ord_ev in ev_orders.iter() {
+        //match &ord_ev.command {
+            //Command::Move(_cmd) => println!("Move"),
+            //Command::CreateToken(_cmd) => println!("Create Token"),
+            //Command::CreateMap(_cmd) => println!("Create Map"),
+            //Command::RequestData(_cmd) => println!("Request Data"),
+            //Command::RequestUploadLock(_cmd) => println!("Request Lock"),
+            //Command::SuccessfulUploadLock(_cmd) => println!("Successful Upload Lock"),
+            //Command::RecieveData(_cmd) => println!("Recieve Data"),
+        //}
         match &ord_ev.command {
             Command::Move(cmd) => ev_move.send(*cmd),
             Command::CreateToken(cmd) => ev_create_token.send(cmd.clone()),
             Command::CreateMap(cmd) => ev_create_map.send(cmd.clone()),
             Command::RequestData(cmd) => ev_request_data.send(cmd.clone()),
             Command::RequestUploadLock(cmd) => ev_request_upload_lock.send(cmd.clone()),
+            Command::SuccessfulUploadLock(cmd) => ev_successful_upload_locked.send(cmd.clone()),
+            Command::RecieveData(cmd) => ev_recieve_data.send(cmd.clone()),
         }
     }
 }
@@ -70,12 +92,14 @@ pub struct MoveCommand {
 fn recieve_move(
     mut ev_move: EventReader<MoveCommand>,
     mut tokens: Query<(&baseplate::ID, &mut Transform)>,
+    mut event: EventWriter<RequestRedraw>,
 ) {
     for mov_ev in ev_move.iter() {
         for mut token in tokens.iter_mut() {
             if token.0 .0 == mov_ev.id.0 {
                 token.1.translation.x = mov_ev.x;
                 token.1.translation.z = mov_ev.y;
+                event.send(RequestRedraw)
             }
         }
     }
@@ -140,7 +164,7 @@ fn recieve_create_map(
 
 #[derive(Event, Serialize, Deserialize, Clone)]
 pub struct RequestUploadLockCommand {
-    pub request: fileload::LoadRequest,
+    pub load_id: fileload::LoadIdentifier,
     pub peer_id: PeerId,
 }
 
@@ -150,22 +174,71 @@ fn recieve_upload_request(
 ) {
     for ev in ev_order.iter() {
         ev_pass.send(filetransfer::UploadRequest{
-            request: ev.request.clone(),
+            load_id: ev.load_id.clone(),
+            peer_id: ev.peer_id,
         })
     }
 }
 
 #[derive(Event, Serialize, Deserialize, Clone)]
+pub struct SuccessfulUploadLockedCommand {
+    pub peer_id: PeerId,
+}
+
+fn recieve_successful_upload_lock(
+    mut ev_order: EventReader<SuccessfulUploadLockedCommand>,
+    mut ev_pass: EventWriter<filetransfer::SuccessfulUploadLock>,
+) {
+    for ev in ev_order.iter() {
+        ev_pass.send(filetransfer::SuccessfulUploadLock{
+            peer_id: ev.peer_id,
+        });
+    }
+}
+
+#[derive(Event, Serialize, Deserialize, Clone)]
 pub struct RequestDataCommand {
+    pub peer_id: PeerId,
     pub section: filetransfer::DataSectionIdentifier,
 }
 
 fn recieve_data_request(
     mut ev_request_data: EventReader<RequestDataCommand>,
+    mut ev_data_request: EventWriter<filetransfer::DataRequest>,
 ) {
     for ev in ev_request_data.iter() {
+        let peer = ev.peer_id;
         let start = ev.section.start;
         let end = ev.section.end;
-        println!("Requested Data {start} - {end}");
+        //println!("Peer {peer} Requested Data {start} - {end}");
+        ev_data_request.send(
+            filetransfer::DataRequest{
+                peer_id: ev.peer_id,
+                section: ev.section.clone(),
+            }
+        )
+    }
+}
+
+#[derive(Event, Serialize, Deserialize, Clone)]
+pub struct RecieveDataCommand {
+    pub peer_id: PeerId,
+    pub data: filetransfer::DownloadedSection,
+}
+
+fn recieve_recieve_data(
+    mut ev_recieve_data: EventReader<RecieveDataCommand>,
+    mut ev_incoming_download: EventWriter<filetransfer::IncomingDownload>,
+) {
+    for ev in ev_recieve_data.iter() {
+        let start = ev.data.id.start;
+        let end = ev.data.id.end;
+        //println!("Recieved Data {start} - {end}");
+        ev_incoming_download.send(
+            filetransfer::IncomingDownload{
+                downloaded_section: Arc::new(ev.data.clone()),
+                peer_id: ev.peer_id,
+            }
+        );
     }
 }

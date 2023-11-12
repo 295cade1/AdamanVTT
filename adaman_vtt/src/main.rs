@@ -1,6 +1,9 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    window::WindowPlugin,
+    winit::WinitSettings,
+};
 use bevy_mod_picking::prelude::*;
-use bevy_remote_asset::RemoteAssetPlugin;
 
 //All modules
 mod baseplate;
@@ -15,12 +18,12 @@ mod tokens;
 mod ui;
 mod bank;
 mod fileload;
-
 mod dd2vtt;
 
 fn main() {
     App::new()
-        .add_plugins(RemoteAssetPlugin)
+        // Power-saving reactive rendering for applications.
+        //.insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 fit_canvas_to_parent: true,

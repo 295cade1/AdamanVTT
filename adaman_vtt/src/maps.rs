@@ -92,6 +92,8 @@ pub fn load_map(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     for ev in ev_map_load.iter() {
+        //let d = String::from_utf8(ev.data.clone().as_slice().into()).ok().unwrap_or("Failed to unwrap".to_string());
+        //println!("{d}");
         //Deserialize the map data
         let Some(data) = serde_json::from_slice::<MapData>(ev.data.as_slice()).ok() else {
             println!("Bad Map Data");

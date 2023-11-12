@@ -38,9 +38,9 @@ impl Bank {
         self.data.get(id) 
     }
 
-    pub fn contains_data(&self, id: &DataId) -> bool {
-        self.data.contains_key(id)
-    }
+    //pub fn contains_data(&self, id: &DataId) -> bool {
+        //self.data.contains_key(id)
+    //}
 
     pub fn insert_data(&mut self, id: &DataId, data: Arc<Vec<u8>>) {
         self.data.insert(*id, data);

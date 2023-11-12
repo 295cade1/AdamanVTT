@@ -30,8 +30,8 @@ impl Plugin for NetworkingPlugin {
 }
 
 #[derive(Resource)]
-struct LocalPeerId {
-    id: PeerId,
+pub struct LocalPeerId {
+    pub id: PeerId,
 }
 
 fn open_socket(mut commands: Commands) {
@@ -157,13 +157,13 @@ fn recieve_networked_events(
     for (peer_id, packet) in recieved {
         let remote_order = from_bytes::<NetworkPacket>(&packet).unwrap();
         ev_order.send(remote_order.order);
-        println!("Recieved from: {peer_id}");
+        //println!("Recieved from: {peer_id}");
     }
     //Unreliable
     let recieved = connection.get_channel(1).unwrap().receive();
     for (peer_id, packet) in recieved {
         let remote_order = from_bytes::<NetworkPacket>(&packet).unwrap();
         ev_order.send(remote_order.order);
-        println!("Recieved from: {peer_id}");
+        //println!("Recieved from: {peer_id}");
     }
 }

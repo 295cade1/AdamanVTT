@@ -20,6 +20,15 @@ impl Plugin for FileTransfer {
             .add_systems(Update, complete_download)
             .add_event::<UploadRequest>()
             .add_systems(Update, lock_upload)
+            .add_event::<SendUploadRequest>()
+            .add_systems(Update, send_upload_requests)
+            .add_event::<SuccessfulUploadLock>()
+            .add_systems(Update, recieve_successful_lock)
+            .add_event::<DataRequest>()
+            .add_systems(Update, recieve_data_request)
+            .add_event::<IncomingDownload>()
+            .add_systems(Update, recieve_data)
+            .insert_resource(UploadState{state: None})
             .insert_resource(DownloadState{state: None});
     }
 }
@@ -43,14 +52,49 @@ impl LoadQueue {
 pub fn handle_load_queue(
     mut queue: ResMut<LoadQueue>,
     mut download: ResMut<DownloadState>,
+    mut upload_requests: EventWriter<SendUploadRequest>,
 ) {
     match download.state {
         None => {
             if let Some(new_download) = queue.queue.pop_front() {
+                upload_requests.send(SendUploadRequest{
+                    recipient: networking::RecepientPeer::All,
+                    load_id: new_download.id.clone(),
+                });
+                let size = new_download.id.size;
+                println!("Downloading file: {size}");
                 download.state = Some(FileDownload::new(new_download));
             }
         },
         Some(_) => (),
+    }
+}
+
+#[derive(Event)]
+pub struct SendUploadRequest{
+    recipient: networking::RecepientPeer,
+    load_id: fileload::LoadIdentifier,
+}
+
+pub fn send_upload_requests(
+    mut ev_send_upload_request: EventReader<SendUploadRequest>,
+    mut ev_networked: EventWriter<networking::NetworkedCommandEvent>,
+    local_peer_id: Option<Res<networking::LocalPeerId>>
+){
+    let Some(local_peer_id) = local_peer_id else {
+        return
+    };
+    for ev in ev_send_upload_request.iter() {
+        ev_networked.send(networking::NetworkedCommandEvent{
+            order: orders::OrderEvent{
+                command: orders::Command::RequestUploadLock(orders::RequestUploadLockCommand{
+                    load_id: ev.load_id.clone(),
+                    peer_id: local_peer_id.id,
+                })
+            },
+            reliability: networking::NetworkReliability::Reliable,
+            peer_id: ev.recipient,
+        });
     }
 }
 
@@ -63,7 +107,7 @@ pub struct FileDownload{
     request: fileload::LoadRequest,
     peers: Vec<UploadingPeer>,
     sections: Vec<DataSectionIdentifier>,
-    data: Arc<Vec<u8>>,
+    data: Vec<u8>,
 }
 
 const REQUEST_BYTES: usize = 1024;
@@ -73,8 +117,8 @@ impl FileDownload{
         let mut sections = Vec::<DataSectionIdentifier>::new();
 
         for i in 0..(value.id.size % REQUEST_BYTES) {
-            let start = i;
-            let end = min(i + REQUEST_BYTES, value.id.size);
+            let start = i * REQUEST_BYTES;
+            let end = min(start + REQUEST_BYTES, value.id.size);
             sections.push(DataSectionIdentifier{
                 index: i,
                 start,
@@ -115,6 +159,7 @@ struct UploadingPeer{
     current_request: Option<DataSectionIdentifier>,
 }
 
+#[derive(Event, Serialize, Deserialize, Clone)]
 pub struct DownloadedSection {
     pub data: Vec<u8>,
     pub id: DataSectionIdentifier,
@@ -140,7 +185,7 @@ pub fn complete_download(
     };
 
     if state.is_done() {
-        bank.insert_data(&state.request.id.data_id, state.data.clone());
+        bank.insert_data(&state.request.id.data_id, state.data.clone().into());
         ev_load.send(state.request.clone());
         download.state = None;
     }
@@ -149,11 +194,16 @@ pub fn complete_download(
 pub fn download_file(
     mut download: ResMut<DownloadState>,
     mut ev_networked: EventWriter<networking::NetworkedCommandEvent>,
+    local_peer_id: Option<Res<networking::LocalPeerId>>,
 ) {
     //If there is a FileDownload
     let download = match &mut download.state {
         None => return,
         Some(x) => x, 
+    };
+
+    let Some(local_peer_id) = local_peer_id else {
+        return;
     };
 
     //If there are any peers that aren't pending data
@@ -169,6 +219,7 @@ pub fn download_file(
                 order: orders::OrderEvent{
                     command: orders::Command::RequestData(orders::RequestDataCommand{
                         section,
+                        peer_id: local_peer_id.id,
                     })
                 },
                 reliability: networking::NetworkReliability::Reliable,
@@ -179,17 +230,63 @@ pub fn download_file(
 }
 
 #[derive(Event)]
+pub struct SuccessfulUploadLock{
+    pub peer_id: PeerId,
+}
+
+pub fn recieve_successful_lock(
+    mut ev_successful_upload_lock: EventReader<SuccessfulUploadLock>,
+    mut download: ResMut<DownloadState>,
+) {
+    let Some(ref mut download) = download.state else {
+        return
+    };
+    for ev in ev_successful_upload_lock.iter() {
+        download.peers.push(UploadingPeer{
+            id: ev.peer_id,
+            current_request: None,
+        });
+    }
+}
+
+#[derive(Event)]
 pub struct UploadRequest{
-    pub request: fileload::LoadRequest,
+    pub load_id: fileload::LoadIdentifier,
+    pub peer_id: PeerId,
 }
 
 pub fn lock_upload(
     mut ev_upload_request: EventReader<UploadRequest>,
     mut upload_state: ResMut<UploadState>,
+    mut ev_networked: EventWriter<networking::NetworkedCommandEvent>,
+    bank: Res<bank::Bank>,
+    local_peer_id: Option<Res<networking::LocalPeerId>>
 ) {
+    let Some(local_peer_id) = local_peer_id else {
+        return
+    };
     for ev in ev_upload_request.iter() {
         if upload_state.state.is_none() {
-            //upload_state.state
+            let Some(file_data) = bank.request_data(&ev.load_id.data_id) else {
+                continue;
+            };
+            upload_state.state = Some(FileUpload{
+                target_peer_id: ev.peer_id,
+                file: file_data.clone(),
+            });
+            ev_networked.send(
+                networking::NetworkedCommandEvent{
+                    peer_id: networking::RecepientPeer::Peer(ev.peer_id),
+                    reliability: networking::NetworkReliability::Reliable,
+                    order: orders::OrderEvent{
+                        command: orders::Command::SuccessfulUploadLock(
+                            orders::SuccessfulUploadLockedCommand{
+                                peer_id: local_peer_id.id,
+                            }
+                        )
+                    }
+                }
+            )
         }
     }
 }
@@ -201,5 +298,87 @@ pub struct UploadState{
 
 pub struct FileUpload{
     target_peer_id: PeerId,
-    data_id: bank::DataId,
+    file: Arc<Vec<u8>>,
+}
+
+#[derive(Event)]
+pub struct DataRequest{
+    pub peer_id: PeerId,
+    pub section: DataSectionIdentifier,
+}
+
+pub fn recieve_data_request(
+    upload_state: ResMut<UploadState>,
+    mut ev_data_request: EventReader<DataRequest>,
+    mut ev_networked: EventWriter<networking::NetworkedCommandEvent>,
+    local_peer_id: Option<Res<networking::LocalPeerId>>
+){
+    for ev in ev_data_request.iter() {
+        let Some(ref upload) = upload_state.state else {
+            println!("No upload state");
+            return;
+        };
+
+        let Some(ref local_peer_id) = local_peer_id else {
+            return;
+        };
+
+        if ev.peer_id != upload.target_peer_id {
+            let wrong_peer_id = ev.peer_id;
+            let correct_peer_id = upload.target_peer_id;
+            println!("Data request from wrong peer id: {wrong_peer_id} Locked to: {correct_peer_id}");
+        }
+        let Some(data) = upload.file.get(ev.section.start..ev.section.end) else {
+            println!("requested data outside bounds");
+            continue;
+        };
+        ev_networked.send(
+            networking::NetworkedCommandEvent{
+                peer_id: networking::RecepientPeer::Peer(ev.peer_id),
+                reliability: networking::NetworkReliability::Reliable,
+                order: orders::OrderEvent{
+                    command: orders::Command::RecieveData(
+                        orders::RecieveDataCommand{
+                            peer_id: local_peer_id.id,
+                            data: DownloadedSection {
+                                data: data.to_vec(),
+                                id: ev.section.clone(),
+                            },
+                        }
+                    )
+
+                }
+            }
+        );
+    }
+}
+
+#[derive(Event)]
+pub struct IncomingDownload{
+    pub downloaded_section: Arc<DownloadedSection>,
+    pub peer_id: PeerId,
+}
+
+pub fn recieve_data(
+    mut download: ResMut<DownloadState>,
+    mut ev_incoming_downloads: EventReader<IncomingDownload>,
+) {
+    for ev in ev_incoming_downloads.iter() {
+        let Some(ref mut download) = download.state else {
+            println!("Recieved incoming data with no download");
+            return;
+        };
+
+        for i in ev.downloaded_section.id.start.. ev.downloaded_section.id.end {
+            let data_index = i - ev.downloaded_section.id.start;
+            let _ = std::mem::replace(&mut download.data[i], ev.downloaded_section.data[data_index]);
+        }
+        //For each incoming set of data
+        for peer in download.peers.iter_mut() {
+            //Remove the request from that peer, as it's done
+            if peer.id == ev.peer_id {
+                peer.current_request = None;
+            }
+        }
+    }
 }
