@@ -16,18 +16,31 @@ impl Plugin for OrdersPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<OrderEvent>()
             .add_systems(Update, recieve_orders)
+
             .add_event::<MoveCommand>()
             .add_systems(Update, recieve_move.after(recieve_orders))
+            
             .add_event::<CreateTokenCommand>()
             .add_systems(Update, recieve_create_token.after(recieve_orders))
+
             .add_event::<RequestDataCommand>()
             .add_systems(Update, recieve_data_request.after(recieve_orders))
+
             .add_event::<RequestUploadLockCommand>()
             .add_systems(Update, recieve_upload_request.after(recieve_orders))
+
             .add_event::<SuccessfulUploadLockedCommand>()
             .add_systems(Update, recieve_successful_upload_lock.after(recieve_orders))
+
             .add_event::<RecieveDataCommand>()
             .add_systems(Update, recieve_recieve_data.after(recieve_orders))
+
+            .add_event::<UnlockUploadCommand>()
+            .add_systems(Update, recieve_unlock_upload.after(recieve_orders))
+
+            .add_event::<UploadAvailableCommand>()
+            .add_systems(Update, recieve_upload_available.after(recieve_orders))
+
             .add_event::<CreateMapCommand>()
             .add_systems(Update, recieve_create_map.after(recieve_orders));
     }
@@ -47,6 +60,8 @@ pub enum Command {
     RequestUploadLock(RequestUploadLockCommand),
     SuccessfulUploadLock(SuccessfulUploadLockedCommand),
     RecieveData(RecieveDataCommand),
+    UnlockUpload(UnlockUploadCommand),
+    UploadAvailable(UploadAvailableCommand),
 }
 
 #[warn(clippy::too_many_arguments)]
@@ -59,6 +74,8 @@ pub fn recieve_orders(
     mut ev_request_upload_lock: EventWriter<RequestUploadLockCommand>,
     mut ev_successful_upload_locked: EventWriter<SuccessfulUploadLockedCommand>,
     mut ev_recieve_data: EventWriter<RecieveDataCommand>,
+    mut ev_unlock_upload: EventWriter<UnlockUploadCommand>,
+    mut ev_upload_available: EventWriter<UploadAvailableCommand>,
 ) {
     for ord_ev in ev_orders.iter() {
         //match &ord_ev.command {
@@ -78,6 +95,8 @@ pub fn recieve_orders(
             Command::RequestUploadLock(cmd) => ev_request_upload_lock.send(cmd.clone()),
             Command::SuccessfulUploadLock(cmd) => ev_successful_upload_locked.send(cmd.clone()),
             Command::RecieveData(cmd) => ev_recieve_data.send(cmd.clone()),
+            Command::UnlockUpload(cmd) => ev_unlock_upload.send(cmd.clone()),
+            Command::UploadAvailable(cmd) => ev_upload_available.send(cmd.clone()),
         }
     }
 }
@@ -207,10 +226,6 @@ fn recieve_data_request(
     mut ev_data_request: EventWriter<filetransfer::DataRequest>,
 ) {
     for ev in ev_request_data.iter() {
-        let peer = ev.peer_id;
-        let start = ev.section.start;
-        let end = ev.section.end;
-        //println!("Peer {peer} Requested Data {start} - {end}");
         ev_data_request.send(
             filetransfer::DataRequest{
                 peer_id: ev.peer_id,
@@ -231,14 +246,39 @@ fn recieve_recieve_data(
     mut ev_incoming_download: EventWriter<filetransfer::IncomingDownload>,
 ) {
     for ev in ev_recieve_data.iter() {
-        let start = ev.data.id.start;
-        let end = ev.data.id.end;
-        //println!("Recieved Data {start} - {end}");
         ev_incoming_download.send(
             filetransfer::IncomingDownload{
                 downloaded_section: Arc::new(ev.data.clone()),
                 peer_id: ev.peer_id,
             }
         );
+    }
+}
+
+#[derive(Event, Serialize, Deserialize, Clone)]
+pub struct UnlockUploadCommand;
+
+fn recieve_unlock_upload(
+    mut ev_order: EventReader<UnlockUploadCommand>,
+    mut ev_pass: EventWriter<filetransfer::UnlockUpload>,
+) {
+    for _ev in ev_order.iter() {
+        ev_pass.send(filetransfer::UnlockUpload);
+    }
+}
+
+#[derive(Event, Serialize, Deserialize, Clone)]
+pub struct UploadAvailableCommand {
+    pub peer_id: PeerId,
+}
+
+fn recieve_upload_available(
+    mut ev_order: EventReader<UploadAvailableCommand>,
+    mut ev_pass: EventWriter<filetransfer::UploadAvailable>,
+) {
+    for ev in ev_order.iter() {
+        ev_pass.send(filetransfer::UploadAvailable{
+            peer_id: ev.peer_id,
+        });
     }
 }

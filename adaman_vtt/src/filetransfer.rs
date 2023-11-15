@@ -18,16 +18,31 @@ impl Plugin for FileTransfer {
             .add_systems(Update, handle_load_queue)
             .add_systems(Update, download_file)
             .add_systems(Update, complete_download)
+
             .add_event::<UploadRequest>()
             .add_systems(Update, lock_upload)
+
             .add_event::<SendUploadRequest>()
             .add_systems(Update, send_upload_requests)
+
             .add_event::<SuccessfulUploadLock>()
             .add_systems(Update, recieve_successful_lock)
+
             .add_event::<DataRequest>()
             .add_systems(Update, recieve_data_request)
+
             .add_event::<IncomingDownload>()
             .add_systems(Update, recieve_data)
+
+            .add_event::<UnlockUpload>()
+            .add_systems(Update, unlock_upload)
+
+            .add_event::<UploadAvailable>()
+            .add_systems(Update, acknowledge_upload_available)
+
+            .add_event::<SendUploadAvailable>()
+            .add_systems(Update, send_upload_available)
+            
             .insert_resource(UploadState{state: None})
             .insert_resource(DownloadState{state: None});
     }
@@ -176,7 +191,9 @@ pub struct DataSectionIdentifier{
 pub fn complete_download(
     mut download: ResMut<DownloadState>,
     mut ev_load: EventWriter<fileload::LoadRequest>,
-    mut bank: ResMut<bank::Bank>
+    mut ev_networked: EventWriter<networking::NetworkedCommandEvent>,
+    mut bank: ResMut<bank::Bank>,
+    mut ev_send_upload_available: EventWriter<SendUploadAvailable>,
 ) {
     //If there is a FileDownload
     let state = match &download.state {
@@ -187,6 +204,23 @@ pub fn complete_download(
     if state.is_done() {
         bank.insert_data(&state.request.id.data_id, state.data.clone().into());
         ev_load.send(state.request.clone());
+
+        for peer in state.peers.iter() {
+            ev_networked.send(
+                networking::NetworkedCommandEvent{
+                    reliability: networking::NetworkReliability::Reliable,
+                    peer_id: networking::RecepientPeer::Peer(peer.id),
+                    order: orders::OrderEvent{
+                        command: orders::Command::UnlockUpload(
+                            orders::UnlockUploadCommand
+                        )
+                    }
+                }
+            );
+        }
+
+        ev_send_upload_available.send(SendUploadAvailable);
+
         download.state = None;
     }
 }
@@ -270,10 +304,13 @@ pub fn lock_upload(
             let Some(file_data) = bank.request_data(&ev.load_id.data_id) else {
                 continue;
             };
+
+            println!("Upload locked to {}", &ev.peer_id);
             upload_state.state = Some(FileUpload{
                 target_peer_id: ev.peer_id,
                 file: file_data.clone(),
             });
+
             ev_networked.send(
                 networking::NetworkedCommandEvent{
                     peer_id: networking::RecepientPeer::Peer(ev.peer_id),
@@ -380,6 +417,78 @@ pub fn recieve_data(
             if peer.id == ev.peer_id {
                 peer.current_request = None;
             }
+        }
+    }
+}
+
+#[derive(Event)]
+pub struct UnlockUpload;
+
+pub fn unlock_upload(
+    mut ev_download_complete: EventReader<UnlockUpload>,
+    mut ev_send_upload_available: EventWriter<SendUploadAvailable>,
+    mut upload: ResMut<UploadState>,
+){
+    for _ev in ev_download_complete.iter() {
+        if upload.state.is_some() {
+            upload.state = None;
+            ev_send_upload_available.send(SendUploadAvailable);
+        }
+    }
+}
+
+#[derive(Event)]
+pub struct SendUploadAvailable;
+
+pub fn send_upload_available (
+    upload_state: ResMut<UploadState>,
+    mut ev_send_upload_available: EventReader<SendUploadAvailable>,
+    mut ev_networked: EventWriter<networking::NetworkedCommandEvent>,
+    local_peer_id: Option<Res<networking::LocalPeerId>>,
+) {
+    let Some(local_peer_id) = local_peer_id else {
+        return;
+    };
+    
+    if upload_state.state.is_some() {
+        return;
+    }
+
+    for _ev in ev_send_upload_available.iter() {
+        ev_networked.send(
+            networking::NetworkedCommandEvent{
+                peer_id: networking::RecepientPeer::All,
+                reliability: networking::NetworkReliability::Reliable,
+                order: orders::OrderEvent{
+                    command: orders::Command::UploadAvailable(
+                        orders::UploadAvailableCommand {
+                            peer_id: local_peer_id.id
+                        }
+                    )
+                }
+            }
+        );
+    }
+}
+
+#[derive(Event)]
+pub struct UploadAvailable{
+    pub peer_id: PeerId,
+}
+
+pub fn acknowledge_upload_available(
+    mut ev_upload_available: EventReader<UploadAvailable>,
+    mut ev_send_upload_request: EventWriter<SendUploadRequest>,
+    download: Res<DownloadState>,
+) {
+    for ev in ev_upload_available.iter() {
+        if let Some(download) = &download.state {
+            ev_send_upload_request.send(
+                SendUploadRequest {
+                    load_id: download.request.id.clone(),
+                    recipient: networking::RecepientPeer::Peer(ev.peer_id),
+                }
+            )
         }
     }
 }
