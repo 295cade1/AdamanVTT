@@ -5,12 +5,13 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use general_storage::Storage;
+
 #[cfg(not(target_family = "wasm"))]
-use std::path::PathBuf;
 use general_storage_file::{
     FileStorage,
     IfDirectoryMissing
 };
+#[cfg(not(target_family = "wasm"))]
 use directories::ProjectDirs;
 
 pub struct BankPlugin;

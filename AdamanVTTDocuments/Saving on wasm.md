@@ -1,0 +1,1 @@
+Should be able to use https://docs.rs/general_storage_web/latest/general_storage_web/struct.LocalStorage.html

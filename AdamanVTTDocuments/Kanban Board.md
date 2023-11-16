@@ -10,14 +10,13 @@ kanban-plugin: basic
 - [x] [[Creating Tokens From Data]]
 - [x] [[Rework Network Events]]
 - [x] Fix bug where adding a token and moving it in the same frame fails to update the token's location
+- [x] [[Saving on wasm]]
+- [x] Compression of network sending data
 
 
 ## TODO
 
 - [ ] [[Camera Movement]]
-- [ ] [[Saving]]
-- [ ] [[Encounter Data]]
-- [ ] [[Token Data]]
 - [ ] [[Manual Token Data Entry]]
 - [ ] Sending Data to out of sync / new peers
 - [ ] Join Screen
@@ -25,12 +24,15 @@ kanban-plugin: basic
 
 ## Inwork
 
-- [x] [[Map Uploading]]
+- [ ] [[Token Data]]
+- [ ] [[Encounter Data]]
 
 
 ## Complete
 
 **Complete**
+- [x] [[Map Uploading]]
+- [x] [[Saving]]
 - [x] Revamp Networking to allow to send to one peer ID and get which peer ID sent the request
 - [x] Implement Save Bank
 - [x] [[Map Data]]

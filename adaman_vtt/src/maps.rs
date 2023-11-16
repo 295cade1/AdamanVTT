@@ -5,6 +5,7 @@ use uuid::Uuid;
 use image::io::Reader as ImageReader;
 use std::io::Cursor;
 use std::sync::Arc;
+use base64::{Engine as _, engine::general_purpose};
 
 pub struct MapPlugin;
 
@@ -65,10 +66,32 @@ pub struct MapLoad {
     pub data: Arc<Vec<u8>>,
 }
 
+impl MapData {
+    pub fn new(
+        format: f64,
+        image_str: String,
+        grid: MapGrid,
+    ) -> MapData {
+        MapData{
+            format,
+            image_str,
+            grid,
+        }
+    }
+
+    pub fn get_image(&self) -> Vec<u8> {
+        Self::decode_img(&self.image_str)
+    }
+
+    fn decode_img(img: &String) -> Vec<u8>{
+        general_purpose::STANDARD.decode(img).unwrap()
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MapData {
     pub format: f64,
-    pub image: Vec<u8>,
+    image_str: String,
     pub grid: MapGrid,
 }
 
@@ -101,7 +124,7 @@ pub fn load_map(
         };
         //Deserialize the image data
         let image_data = ImageReader::new(
-            Cursor::new(data.image.clone()))
+            Cursor::new(data.get_image().clone()))
             .with_guessed_format()
             .expect("Unable to guess format")
             .decode()

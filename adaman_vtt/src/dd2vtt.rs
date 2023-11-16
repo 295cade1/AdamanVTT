@@ -1,25 +1,21 @@
 use serde::{Deserialize, Serialize};
-use base64::{Engine as _, engine::general_purpose};
 
 use crate::maps;
 
 impl From<DD2VTT> for maps::MapData {
     fn from(x: DD2VTT) -> Self {
-        maps::MapData{
-            format: x.format,
-            image: decode_img(x.image),
-            grid: maps::MapGrid{
+        maps::MapData::new(
+            x.format,
+            x.image,
+            maps::MapGrid{
                 pixels_per: x.resolution.pixels_per_grid,
                 width: x.resolution.map_size.x,
                 height: x.resolution.map_size.y,
             }
-        }
+        )
     }
 }
 
-fn decode_img(img: String) -> Vec<u8>{
-    general_purpose::STANDARD.decode(img).unwrap()
-}
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
