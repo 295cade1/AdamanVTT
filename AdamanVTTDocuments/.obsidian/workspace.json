@@ -39,9 +39,9 @@
               "state": {
                 "file": "Map Loading.canvas",
                 "viewState": {
-                  "x": 211.65523269618103,
-                  "y": 661.1826341563111,
-                  "zoom": -1.2495913695295644
+                  "x": 97.5,
+                  "y": 665,
+                  "zoom": -1.64791066700014
                 }
               }
             }
@@ -196,9 +196,9 @@
   },
   "active": "d41d9e993a1cead4",
   "lastOpenFiles": [
-    "Saving.md",
-    "Kanban Board.md",
     "Map Loading.canvas",
+    "Kanban Board.md",
+    "Saving.md",
     "Rework Network Events.md",
     "Map Uploading.md",
     "Movement.md",

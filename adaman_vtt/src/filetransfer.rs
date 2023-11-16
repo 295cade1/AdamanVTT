@@ -125,7 +125,7 @@ pub struct FileDownload{
     data: Vec<u8>,
 }
 
-const REQUEST_BYTES: usize = 8192;
+const REQUEST_BYTES: usize = 16 * 1024;
 
 impl FileDownload{
     fn new(value: fileload::LoadRequest) -> Self {
@@ -220,6 +220,8 @@ pub fn complete_download(
         }
 
         ev_send_upload_available.send(SendUploadAvailable);
+
+        println!("Download Complete");
 
         download.state = None;
     }
