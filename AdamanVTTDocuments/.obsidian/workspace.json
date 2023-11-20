@@ -8,43 +8,16 @@
         "type": "tabs",
         "children": [
           {
-            "id": "dece9957c2d0743d",
+            "id": "3781e4335d6672ea",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "kanban",
               "state": {
-                "file": "Saving.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "da8467b0f3bccb2f",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Movement.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "0e3a3e266cfd2cf7",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Untitled 1.md",
-                "mode": "source",
-                "source": false
+                "file": "Kanban Board.md"
               }
             }
           }
-        ],
-        "currentTab": 2
+        ]
       }
     ],
     "direction": "vertical"
@@ -110,7 +83,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Untitled 1.md",
+                "file": "Kanban Board.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -127,7 +100,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Untitled 1.md",
+                "file": "Kanban Board.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -150,7 +123,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Untitled 1.md"
+                "file": "Kanban Board.md"
               }
             }
           },
@@ -181,20 +154,20 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "0e3a3e266cfd2cf7",
+  "active": "3781e4335d6672ea",
   "lastOpenFiles": [
+    "Map Loading.canvas",
     "Saving.md",
+    "Movement.md",
+    "Untitled 1.md",
     "Saving 1.md",
     "Tokens.md",
-    "Untitled 1.md",
-    "Map Loading.canvas",
     "Untitled.md",
     "Token Data.md",
     "Kanban Board.md",
     "Saving on wasm.md",
     "Rework Network Events.md",
     "Map Uploading.md",
-    "Movement.md",
     "Camera Movement.md",
     "Time Tracking.md",
     "Manual Token Data Entry.md",

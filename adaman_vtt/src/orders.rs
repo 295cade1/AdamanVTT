@@ -142,7 +142,7 @@ fn recieve_create_token(
     for ev in ev_create_token.iter() {
         commands.spawn(tokens::TokenBundle::new(
             ev.id,
-            Vec3::new(ev.x, 0.1, ev.y),
+            Vec3::new(ev.x, 0.01, ev.y),
             &mut meshes,
             &mut materials,
             &asset_server,

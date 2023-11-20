@@ -147,8 +147,8 @@ pub fn load_map(
                 //Replace the material's image with the new one
                 mat.base_color_texture = Some(image_handle.clone());
 
-                let width = data.grid.width as f32 * 1.;
-                let height = data.grid.height as f32 * 1.;
+                let width = data.grid.width as f32 * 5.;
+                let height = data.grid.height as f32 * 5.;
                 println!("{width}, {height}");
                 //Create a new mesh of the correct size
                 let new_quad = shape::Quad {
