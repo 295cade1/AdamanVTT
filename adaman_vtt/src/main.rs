@@ -19,6 +19,7 @@ mod ui;
 mod bank;
 mod fileload;
 mod dd2vtt;
+mod files;
 
 fn main() {
     App::new()
@@ -33,6 +34,7 @@ fn main() {
             ..default()
         }))
         .add_plugins(bank::BankPlugin)
+        .add_plugins(files::FilesPlugin)
         .add_plugins(filetransfer::FileTransfer)
         .add_plugins(fileload::FileLoad)
         .add_plugins(input::InputPlugin)
