@@ -10,8 +10,6 @@ pub struct TokenBundle {
     #[bundle()]
     pub pickable: PickableBundle,
     #[bundle()]
-    pub target: RaycastPickTarget,
-    #[bundle()]
     pub drag_event: On<Pointer<Drag>>,
     pub token: TokenFlag,
 }
@@ -37,7 +35,6 @@ impl TokenBundle {
                 asset_server,
             ),
             pickable: PickableBundle::default(), // Makes the entity pickable
-            target: RaycastPickTarget::default(), // Marker for the `bevy_picking_raycast` backend
             drag_event: On::<Pointer<Drag>>::send_event::<input::TokenDragEvent>(),
             token: TokenFlag,
         }

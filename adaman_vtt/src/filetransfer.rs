@@ -99,7 +99,7 @@ pub fn send_upload_requests(
     let Some(local_peer_id) = local_peer_id else {
         return
     };
-    for ev in ev_send_upload_request.iter() {
+    for ev in ev_send_upload_request.read() {
         ev_networked.send(networking::NetworkedCommandEvent{
             order: orders::OrderEvent{
                 command: orders::Command::RequestUploadLock(orders::RequestUploadLockCommand{
@@ -277,7 +277,7 @@ pub fn recieve_successful_lock(
     let Some(ref mut download) = download.state else {
         return
     };
-    for ev in ev_successful_upload_lock.iter() {
+    for ev in ev_successful_upload_lock.read() {
         download.peers.push(UploadingPeer{
             id: ev.peer_id,
             current_request: None,
@@ -301,7 +301,7 @@ pub fn lock_upload(
     let Some(local_peer_id) = local_peer_id else {
         return
     };
-    for ev in ev_upload_request.iter() {
+    for ev in ev_upload_request.read() {
         if upload_state.state.is_none() {
             let Some(file_data) = bank.request_data(&ev.load_id.data_id) else {
                 continue;
@@ -352,7 +352,7 @@ pub fn recieve_data_request(
     mut ev_networked: EventWriter<networking::NetworkedCommandEvent>,
     local_peer_id: Option<Res<networking::LocalPeerId>>
 ){
-    for ev in ev_data_request.iter() {
+    for ev in ev_data_request.read() {
         let Some(ref upload) = upload_state.state else {
             println!("No upload state");
             return;
@@ -403,7 +403,7 @@ pub fn recieve_data(
     mut download: ResMut<DownloadState>,
     mut ev_incoming_downloads: EventReader<IncomingDownload>,
 ) {
-    for ev in ev_incoming_downloads.iter() {
+    for ev in ev_incoming_downloads.read() {
         let Some(ref mut download) = download.state else {
             println!("Recieved incoming data with no download");
             return;
@@ -431,7 +431,7 @@ pub fn unlock_upload(
     mut ev_send_upload_available: EventWriter<SendUploadAvailable>,
     mut upload: ResMut<UploadState>,
 ){
-    for _ev in ev_download_complete.iter() {
+    for _ev in ev_download_complete.read() {
         if upload.state.is_some() {
             upload.state = None;
             ev_send_upload_available.send(SendUploadAvailable);
@@ -456,7 +456,7 @@ pub fn send_upload_available (
         return;
     }
 
-    for _ev in ev_send_upload_available.iter() {
+    for _ev in ev_send_upload_available.read() {
         ev_networked.send(
             networking::NetworkedCommandEvent{
                 peer_id: networking::RecepientPeer::All,
@@ -483,7 +483,7 @@ pub fn acknowledge_upload_available(
     mut ev_send_upload_request: EventWriter<SendUploadRequest>,
     download: Res<DownloadState>,
 ) {
-    for ev in ev_upload_available.iter() {
+    for ev in ev_upload_available.read() {
         if let Some(download) = &download.state {
             ev_send_upload_request.send(
                 SendUploadRequest {

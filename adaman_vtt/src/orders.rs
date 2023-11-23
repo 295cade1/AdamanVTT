@@ -77,7 +77,7 @@ pub fn recieve_orders(
     mut ev_unlock_upload: EventWriter<UnlockUploadCommand>,
     mut ev_upload_available: EventWriter<UploadAvailableCommand>,
 ) {
-    for ord_ev in ev_orders.iter() {
+    for ord_ev in ev_orders.read() {
         //match &ord_ev.command {
             //Command::Move(_cmd) => println!("Move"),
             //Command::CreateToken(_cmd) => println!("Create Token"),
@@ -113,7 +113,7 @@ fn recieve_move(
     mut tokens: Query<(&baseplate::ID, &mut Transform)>,
     mut event: EventWriter<RequestRedraw>,
 ) {
-    for mov_ev in ev_move.iter() {
+    for mov_ev in ev_move.read() {
         for mut token in tokens.iter_mut() {
             if token.0 .0 == mov_ev.id.0 {
                 token.1.translation.x = mov_ev.x;
@@ -139,7 +139,7 @@ fn recieve_create_token(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    for ev in ev_create_token.iter() {
+    for ev in ev_create_token.read() {
         commands.spawn(tokens::TokenBundle::new(
             ev.id,
             Vec3::new(ev.x, 0.01, ev.y),
@@ -165,7 +165,7 @@ fn recieve_create_map(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut ev_load: EventWriter<fileload::LoadRequest>,
 ) {
-    for ev in ev_create_map.iter() {
+    for ev in ev_create_map.read() {
         commands.spawn(maps::MapBundle::new(
             ev.map_id,
             Vec3::new(ev.x, 0., ev.y),
@@ -191,7 +191,7 @@ fn recieve_upload_request(
     mut ev_order: EventReader<RequestUploadLockCommand>,
     mut ev_pass: EventWriter<filetransfer::UploadRequest>,
 ) {
-    for ev in ev_order.iter() {
+    for ev in ev_order.read() {
         ev_pass.send(filetransfer::UploadRequest{
             load_id: ev.load_id.clone(),
             peer_id: ev.peer_id,
@@ -208,7 +208,7 @@ fn recieve_successful_upload_lock(
     mut ev_order: EventReader<SuccessfulUploadLockedCommand>,
     mut ev_pass: EventWriter<filetransfer::SuccessfulUploadLock>,
 ) {
-    for ev in ev_order.iter() {
+    for ev in ev_order.read() {
         ev_pass.send(filetransfer::SuccessfulUploadLock{
             peer_id: ev.peer_id,
         });
@@ -225,7 +225,7 @@ fn recieve_data_request(
     mut ev_request_data: EventReader<RequestDataCommand>,
     mut ev_data_request: EventWriter<filetransfer::DataRequest>,
 ) {
-    for ev in ev_request_data.iter() {
+    for ev in ev_request_data.read() {
         ev_data_request.send(
             filetransfer::DataRequest{
                 peer_id: ev.peer_id,
@@ -245,7 +245,7 @@ fn recieve_recieve_data(
     mut ev_recieve_data: EventReader<RecieveDataCommand>,
     mut ev_incoming_download: EventWriter<filetransfer::IncomingDownload>,
 ) {
-    for ev in ev_recieve_data.iter() {
+    for ev in ev_recieve_data.read() {
         ev_incoming_download.send(
             filetransfer::IncomingDownload{
                 downloaded_section: Arc::new(ev.data.clone()),

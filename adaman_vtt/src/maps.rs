@@ -114,7 +114,7 @@ pub fn load_map(
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    for ev in ev_map_load.iter() {
+    for ev in ev_map_load.read() {
         //let d = String::from_utf8(ev.data.clone().as_slice().into()).ok().unwrap_or("Failed to unwrap".to_string());
         //println!("{d}");
         //Deserialize the map data
@@ -158,7 +158,7 @@ pub fn load_map(
                     },
                     flip: false,
                 };
-                let _ = meshes.set(map.0, new_quad.into());
+                let _ = meshes.insert(map.0, new_quad.into());
 
                 //Workaround to recalculate AABBs
                 commands.entity(map.2).remove::<bevy::render::primitives::Aabb>();

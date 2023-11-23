@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_mod_picking::prelude::*;
 
 pub struct GameStartPlugin;
 
@@ -17,7 +16,6 @@ fn setup(mut commands: Commands) {
             projection: PerspectiveProjection { ..default() }.into(),
             ..default()
         },
-        RaycastPickCamera::default(),
     );
     commands.spawn(camera_bundle);
 

@@ -116,7 +116,7 @@ fn split_client_events(
     mut ev_networked: EventWriter<NetworkedCommandEvent>,
     mut ev_order: EventWriter<orders::OrderEvent>,
 ) {
-    for ev in ev_client.iter() {
+    for ev in ev_client.read() {
         ev_networked.send(NetworkedCommandEvent {
             order: ev.order.clone(),
             reliability: ev.reliability,
@@ -130,7 +130,7 @@ fn send_networked_events(
     mut ev_networked: EventReader<NetworkedCommandEvent>,
     mut connection: ResMut<MatchboxSocket<MultipleChannels>>,
 ) {
-    for ev in ev_networked.iter() {
+    for ev in ev_networked.read() {
         let ids = Vec::from_iter(connection.connected_peers());
         for peer_id in ids {
             if ev.peer_id.valid_for_peer(&peer_id) {
@@ -157,13 +157,13 @@ fn recieve_networked_events(
     for (peer_id, packet) in recieved {
         let remote_order = from_bytes::<NetworkPacket>(&packet).unwrap();
         ev_order.send(remote_order.order);
-        //println!("Recieved from: {peer_id}");
+        println!("Recieved from: {peer_id}");
     }
     //Unreliable
     let recieved = connection.get_channel(1).unwrap().receive();
     for (peer_id, packet) in recieved {
         let remote_order = from_bytes::<NetworkPacket>(&packet).unwrap();
         ev_order.send(remote_order.order);
-        //println!("Recieved from: {peer_id}");
+        println!("Recieved from: {peer_id}");
     }
 }

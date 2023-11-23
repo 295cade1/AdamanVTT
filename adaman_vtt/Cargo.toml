@@ -7,11 +7,10 @@ edition = "2021"
 
 [dependencies]
 base64 = "0.21.5"
-bevy = { version = "0.11.1", features = ["jpeg", "serialize"] }
-bevy_egui = { version = "0.21.0", features = ["serde"] }
-bevy_matchbox = "0.7.0"
-bevy_mod_picking = { version = "0.15.0", features = ["bevy_egui", "backend_egui"] }
-# bevy_remote_asset = "0.1.1"
+bevy = { version = "0.12.0", features = ["jpeg", "serialize"] }
+bevy_egui = { version = "0.23.0", features = ["serde"] }
+bevy_matchbox = "0.8.0"
+bevy_mod_picking = { version = "0.17.0", features = ["bevy_picking_raycast", "bevy_egui", "backend_egui"] }
 bincode = "1.3.3"
 directories = "5.0.1"
 futures-lite = "2.0.0"
