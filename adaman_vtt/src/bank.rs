@@ -18,7 +18,7 @@ pub struct BankPlugin;
 
 impl Plugin for BankPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_bank);
+        app.add_systems(PreStartup, setup_bank);
     }
 }
 
@@ -36,15 +36,15 @@ pub struct Bank {
 }
 
 #[cfg(not(target_family = "wasm"))]
-fn setup_bank(
+pub fn setup_bank(
     mut commands: Commands,
 ) {
     if let Some(proj_dirs) = ProjectDirs::from("vtt", "Cade", "AdamanVTT") {
         let path = proj_dirs.data_dir();
-    let bank = FileStorage::new(path, IfDirectoryMissing::Create).expect("Failed to create storage location");
-    commands.insert_resource(Bank{
-        data: bank
-    })
+        let bank = FileStorage::new(path, IfDirectoryMissing::Create).expect("Failed to create storage location");
+        commands.insert_resource(Bank{
+            data: bank
+        })
     }
 }
 

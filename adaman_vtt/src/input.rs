@@ -16,6 +16,7 @@ use crate::bank;
 use crate::orders;
 use crate::dd2vtt;
 use crate::fileload;
+use crate::files;
 
 pub struct InputPlugin;
 
@@ -122,11 +123,12 @@ pub fn create_token(x: f32, y: f32, url: Option<&str>) -> networking::ClientComm
 #[derive(Component)]
 pub struct MapFile {
     file: Task<Option<PathBuf>>,
+    name: String,
     //x: f32,
     //y: f32,
 }
 
-pub fn create_map_from_file(mut commands: Commands) {
+pub fn create_map_from_file(mut commands: Commands, name: String) {
     let thread_pool = AsyncComputeTaskPool::get();
     let task = thread_pool.spawn(async move {
         FileDialog::new()
@@ -134,7 +136,7 @@ pub fn create_map_from_file(mut commands: Commands) {
             .add_filter("universalVTT", &["dd2vtt", "json"])
             .pick_file()
     });
-    commands.spawn(MapFile { file: task});
+    commands.spawn(MapFile {file: task, name});
 }
 
 //Poll to see if the user has selected a path
@@ -142,7 +144,8 @@ pub fn poll_for_map(
     mut commands: Commands, 
     mut ev_client: EventWriter<networking::ClientCommandEvent>,
     mut tasks: Query<(Entity, &mut MapFile)>,
-    mut bank: Option<ResMut<bank::Bank>>
+    mut bank: Option<ResMut<bank::Bank>>,
+    mut register_event: EventWriter<files::RegisterMap>,
 ) {
     //Make sure the bank is ready
     let Some(ref mut bank) = bank else {
@@ -190,6 +193,13 @@ pub fn poll_for_map(
         let hash = data.reflect_hash().expect("Unable to hash vec<u8>");
 
         bank.insert_data(&id, data.into());
+
+        register_event.send(
+            files::RegisterMap{
+                id: id.clone(),
+                name: selected_file.name.clone(),
+            }
+        );
 
         //Send the packet to the other peers to have them create the map
         ev_client.send(networking::ClientCommandEvent {
