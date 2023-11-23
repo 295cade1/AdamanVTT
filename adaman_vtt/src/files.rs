@@ -1,9 +1,11 @@
 use bevy::prelude::*;
 use uuid::uuid;
-use crate::bank;
 use serde::Deserialize;
 use serde::Serialize;
 use std::sync::Arc;
+
+use crate::bank;
+use crate::fileload;
 
 pub struct FilesPlugin;
 
@@ -86,7 +88,7 @@ impl MapList {
 #[derive(Serialize, Deserialize)]
 pub struct MapFileData {
     pub name: String,
-    pub data: bank::DataId,
+    pub load_identifier: fileload::LoadIdentifier,
 }
 
 
@@ -103,7 +105,7 @@ impl bank::Bank {
 #[derive(Event)]
 pub struct RegisterMap {
     pub name: String,
-    pub id: bank::DataId,
+    pub load_identifier: fileload::LoadIdentifier,
 }
 
 pub fn register_map(
@@ -111,12 +113,12 @@ pub fn register_map(
     mut events: EventReader<RegisterMap>,
     mut update_event: EventWriter<MapListUpdated>,
 ) {
-    for ev in events.iter() {
+    for ev in events.read() {
         let mut maps = bank.get_map_list();
         maps.maps.push(
             MapFileData {
                 name: ev.name.clone(),
-                data: ev.id,
+                load_identifier: ev.load_identifier.clone(),
             }
         );
         let maps = Arc::new(serde_json::to_vec(&maps).ok().unwrap());

@@ -52,7 +52,7 @@ fn recieve_dragging_tokens(
     let (camera, camera_transform) = camera_q.single();
 
     let mut dict = std::collections::HashMap::<baseplate::ID, (f32, f32)>::new();
-    for drag_ev in ev_drag.iter() {
+    for drag_ev in ev_drag.read() {
         if let Ok(token) = tokens.get(drag_ev.input.listener()) {
             dict.insert(
                 *token.0,
@@ -194,28 +194,39 @@ pub fn poll_for_map(
 
         bank.insert_data(&id, data.into());
 
+        let load_identifier = fileload::LoadIdentifier{
+            data_id: id,
+            size,
+            hash,
+        };
+
         register_event.send(
             files::RegisterMap{
-                id: id.clone(),
+                load_identifier: load_identifier.clone(),
                 name: selected_file.name.clone(),
             }
         );
-
-        //Send the packet to the other peers to have them create the map
-        ev_client.send(networking::ClientCommandEvent {
-            order: orders::OrderEvent {
-                command: orders::Command::CreateMap(orders::CreateMapCommand {
-                    x: 0.,
-                    y: 0.,
-                    data_id: fileload::LoadIdentifier{
-                        data_id: id,
-                        size,
-                        hash,
-                    },
-                    map_id: maps::get_new_id(),
-                }),
-            },
-            reliability: networking::NetworkReliability::Reliable,
-        });
+        create_map(
+            load_identifier.clone(),
+            &mut ev_client,
+        )
     }
+}
+
+pub fn create_map(
+    load_identifier: fileload::LoadIdentifier,
+    ev_client: &mut EventWriter<networking::ClientCommandEvent>,
+) {
+    //Send the packet to the other peers to have them create the map
+    ev_client.send(networking::ClientCommandEvent {
+        order: orders::OrderEvent {
+            command: orders::Command::CreateMap(orders::CreateMapCommand {
+                x: 0.,
+                y: 0.,
+                data_id: load_identifier.clone(),
+                map_id: maps::get_new_id(),
+            }),
+        },
+        reliability: networking::NetworkReliability::Reliable,
+    });
 }

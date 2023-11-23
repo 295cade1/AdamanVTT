@@ -43,9 +43,9 @@ enum SidePanelState {
 fn update_ui_state(
     mut ui_state: ResMut<UIState>,
     mut map_event: EventReader<files::MapListUpdated>,
-    mut bank: ResMut<bank::Bank>,
+    bank: ResMut<bank::Bank>,
 ) {
-    for _ev in map_event.iter() {
+    for _ev in map_event.read() {
         ui_state.map_list = None;
     }
     if ui_state.map_list.is_none() {
@@ -56,8 +56,8 @@ fn update_ui_state(
 fn ui(
     commands: Commands,
     mut contexts: EguiContexts,
-    mut ev_client: EventWriter<networking::ClientCommandEvent>,
     mut ui_state: ResMut<UIState>,
+    mut ev_client: EventWriter<networking::ClientCommandEvent>,
 ) {
     egui::SidePanel::right("Token Creation")
         .min_width(200.0)
@@ -74,7 +74,12 @@ fn ui(
                     if let Some(ref map_list) = &ui_state.map_list {
                         egui::ScrollArea::vertical().show(ui, |ui| {
                             for map in map_list.maps.iter() {
-                                create_map_list_ui(ui, map);
+                                ui.separator();
+                                ui.label(map.name.clone());
+                                let insert_btn = ui.button("Insert");
+                                if insert_btn.clicked() {
+                                    input::create_map(map.load_identifier.clone(), &mut ev_client);
+                                }
                             }
                         });
                     }
@@ -96,10 +101,4 @@ fn ui(
                 })
             })
         });
-}
-
-fn create_map_list_ui(ui: &mut egui::Ui, data: &files::MapFileData) {
-    ui.separator();
-    ui.label(data.name.clone());
-    ui.button("Insert");
 }

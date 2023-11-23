@@ -55,7 +55,7 @@ impl Bank {
         let Some(data) = data else {
             return None;
         };
-        return Some(Arc::new(data));
+        Some(Arc::new(data))
     }
 
     pub fn contains_data(&self, id: &DataId) -> bool {

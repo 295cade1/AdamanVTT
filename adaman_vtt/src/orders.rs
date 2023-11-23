@@ -64,7 +64,7 @@ pub enum Command {
     UploadAvailable(UploadAvailableCommand),
 }
 
-#[warn(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments)]
 pub fn recieve_orders(
     mut ev_orders: EventReader<OrderEvent>,
     mut ev_move: EventWriter<MoveCommand>,
@@ -262,7 +262,7 @@ fn recieve_unlock_upload(
     mut ev_order: EventReader<UnlockUploadCommand>,
     mut ev_pass: EventWriter<filetransfer::UnlockUpload>,
 ) {
-    for _ev in ev_order.iter() {
+    for _ev in ev_order.read() {
         ev_pass.send(filetransfer::UnlockUpload);
     }
 }
@@ -276,7 +276,7 @@ fn recieve_upload_available(
     mut ev_order: EventReader<UploadAvailableCommand>,
     mut ev_pass: EventWriter<filetransfer::UploadAvailable>,
 ) {
-    for ev in ev_order.iter() {
+    for ev in ev_order.read() {
         ev_pass.send(filetransfer::UploadAvailable{
             peer_id: ev.peer_id,
         });

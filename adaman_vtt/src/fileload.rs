@@ -48,7 +48,7 @@ pub fn recieve_request(
     mut load_queue: ResMut<filetransfer::LoadQueue>,
     bank: Res<bank::Bank>
 ) {
-    for ld_ev in ev_load.iter() {
+    for ld_ev in ev_load.read() {
         if let Some(data) = bank.request_data(&ld_ev.id.data_id) {
             ev_success.send(SuccessfulLoad{
                 request: ld_ev.clone(),
@@ -65,7 +65,7 @@ pub fn process_successful_load(
     mut ev_success: EventReader<SuccessfulLoad>,
     mut ev_map_load: EventWriter<maps::MapLoad>,
 ) {
-    for succ_ev in ev_success.iter() {
+    for succ_ev in ev_success.read() {
         match succ_ev.request.endpoint {
             FileEndpoint::Map(id) => ev_map_load.send(maps::MapLoad{
                 map_id: id,

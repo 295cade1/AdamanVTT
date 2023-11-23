@@ -150,7 +150,7 @@ impl FileDownload{
         FileDownload{
             request: value,
             peers: Vec::<UploadingPeer>::new(),
-            data: data.into(),
+            data,
             sections,
         }
     }

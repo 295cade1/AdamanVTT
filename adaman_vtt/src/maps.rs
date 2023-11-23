@@ -158,7 +158,7 @@ pub fn load_map(
                     },
                     flip: false,
                 };
-                let _ = meshes.insert(map.0, new_quad.into());
+                meshes.insert(map.0, new_quad.into());
 
                 //Workaround to recalculate AABBs
                 commands.entity(map.2).remove::<bevy::render::primitives::Aabb>();

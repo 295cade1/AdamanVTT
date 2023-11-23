@@ -46,7 +46,7 @@ fn camera_movement(
 
     //Scroll Input
     use bevy::input::mouse::MouseScrollUnit;
-    for ev in scroll_evr.iter() {
+    for ev in scroll_evr.read() {
         match ev.unit {
             MouseScrollUnit::Line => {
                 println!(
