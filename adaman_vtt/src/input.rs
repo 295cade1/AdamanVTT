@@ -5,18 +5,17 @@ use bevy::{
 use bevy_mod_picking::prelude::*;
 
 use futures_lite::future;
-use rfd::FileDialog;
-use std::fs;
-use std::path::PathBuf;
+use rfd::AsyncFileDialog;
 
-use crate::baseplate;
 use crate::maps;
+use crate::tokens;
 use crate::networking;
 use crate::bank;
 use crate::orders;
 use crate::dd2vtt;
 use crate::fileload;
 use crate::files;
+use crate::encounters;
 
 pub struct InputPlugin;
 
@@ -45,13 +44,13 @@ impl From<ListenerInput<Pointer<Drag>>> for TokenDragEvent {
 fn recieve_dragging_tokens(
     mut ev_drag: EventReader<TokenDragEvent>,
     mut ev_client: EventWriter<networking::ClientCommandEvent>,
-    tokens: Query<(&baseplate::ID, &Transform)>,
+    tokens: Query<(&tokens::TokenId, &Transform)>,
     // query to get camera transform
     camera_q: Query<(&Camera, &GlobalTransform)>,
 ) {
     let (camera, camera_transform) = camera_q.single();
 
-    let mut dict = std::collections::HashMap::<baseplate::ID, (f32, f32)>::new();
+    let mut dict = std::collections::HashMap::<tokens::TokenId, (f32, f32)>::new();
     for drag_ev in ev_drag.read() {
         if let Ok(token) = tokens.get(drag_ev.input.listener()) {
             dict.insert(
@@ -105,24 +104,10 @@ fn get_plane_intersection(ray: Ray, plane_origin: Vec3, plane_normal: Vec3) -> O
 }
 
 //UI funcs
-pub fn create_token(x: f32, y: f32, url: Option<&str>) -> networking::ClientCommandEvent {
-    let url = url.unwrap_or("https://api.open5e.com/static/img/monsters/hezrou.png");
-    networking::ClientCommandEvent {
-        order: orders::OrderEvent {
-            command: orders::Command::CreateToken(orders::CreateTokenCommand {
-                x,
-                y,
-                id: baseplate::ID(baseplate::get_new_id()),
-                url: url.to_string(),
-            }),
-        },
-        reliability: networking::NetworkReliability::Reliable,
-    }
-}
 
 #[derive(Component)]
 pub struct MapFile {
-    file: Task<Option<PathBuf>>,
+    file: Task<Option<Vec<u8>>>,
     name: String,
     //x: f32,
     //y: f32,
@@ -130,11 +115,15 @@ pub struct MapFile {
 
 pub fn create_map_from_file(mut commands: Commands, name: String) {
     let thread_pool = AsyncComputeTaskPool::get();
-    let task = thread_pool.spawn(async move {
-        FileDialog::new()
+    let task = thread_pool.spawn(async move{
+        let handle = AsyncFileDialog::new()
             .add_filter("image", &["png", "jpg"])
             .add_filter("universalVTT", &["dd2vtt", "json"])
-            .pick_file()
+            .pick_file().await;
+        let Some(handle) = handle else {
+            return None;
+        };
+        Some(handle.read().await)
     });
     commands.spawn(MapFile {file: task, name});
 }
@@ -161,17 +150,10 @@ pub fn poll_for_map(
         commands.entity(entity).remove::<MapFile>();
 
         //Make sure it's like a real thing
-        let Some(path) = result else {
+        let Some(contents) = result else {
             continue;
         };
-
-        //println!("{:?}", path);
-
-        //Read the file
-        let Ok(contents) = fs::read_to_string(path) else {
-            continue;
-        };
-
+        let contents = String::from_utf8(contents).unwrap();
         //println!("{:?}", contents);
 
         //Deserialize it into the RawMapData
@@ -185,20 +167,9 @@ pub fn poll_for_map(
             continue;
         };
 
-        let id = bank::get_new_id();
         //Insert the file data into the bank
         let data = serde_json::to_vec(&data).ok().unwrap();
-
-        let size = data.len();
-        let hash = data.reflect_hash().expect("Unable to hash vec<u8>");
-
-        bank.insert_data(&id, data.into());
-
-        let load_identifier = fileload::LoadIdentifier{
-            data_id: id,
-            size,
-            hash,
-        };
+        let load_identifier = bank.store(data.into());
 
         register_event.send(
             files::RegisterMap{
@@ -228,5 +199,46 @@ pub fn create_map(
             }),
         },
         reliability: networking::NetworkReliability::Reliable,
+    });
+}
+
+pub fn load_encounter(
+    load_identifier: fileload::LoadIdentifier,
+    ev_client: &mut EventWriter<networking::ClientCommandEvent>,
+) {
+    //Send the packet to the other peers to have them create the map
+    ev_client.send(networking::ClientCommandEvent {
+        order: orders::OrderEvent {
+            command: orders::Command::LoadEncounter(orders::LoadEncounterCommand {
+                load_identifier: load_identifier.clone(),
+            }),
+        },
+        reliability: networking::NetworkReliability::Reliable,
+    });
+}
+
+pub fn create_token(
+    load_identifier: fileload::LoadIdentifier,
+    ev_client: &mut EventWriter<networking::ClientCommandEvent>,
+) {
+    ev_client.send(networking::ClientCommandEvent {
+        order: orders::OrderEvent {
+            command: orders::Command::CreateToken(orders::CreateTokenCommand {
+                x: 0.,
+                y: 0.,
+                id: tokens::get_new_id(),
+                load_identifier, 
+            }),
+        },
+        reliability: networking::NetworkReliability::Reliable,
+    });
+}
+
+pub fn save_encounter(
+    mut ev_save_encounter: EventWriter<encounters::EncounterSave>,
+    name: String,
+) {
+    ev_save_encounter.send(encounters::EncounterSave{
+        name,
     });
 }

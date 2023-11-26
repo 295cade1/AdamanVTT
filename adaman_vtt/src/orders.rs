@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use bevy_matchbox::prelude::PeerId;
 use std::sync::Arc;
 
-use crate::baseplate;
 use crate::maps;
 use crate::tokens;
 use crate::fileload;
@@ -42,7 +41,11 @@ impl Plugin for OrdersPlugin {
             .add_systems(Update, recieve_upload_available.after(recieve_orders))
 
             .add_event::<CreateMapCommand>()
-            .add_systems(Update, recieve_create_map.after(recieve_orders));
+            .add_systems(Update, recieve_create_map.after(recieve_orders))
+
+            .add_event::<LoadEncounterCommand>()
+            .add_systems(Update, recieve_load_encounter.after(recieve_orders))
+        ;
     }
 }
 
@@ -56,6 +59,7 @@ pub enum Command {
     Move(MoveCommand),
     CreateToken(CreateTokenCommand),
     CreateMap(CreateMapCommand),
+    LoadEncounter(LoadEncounterCommand),
     RequestData(RequestDataCommand),
     RequestUploadLock(RequestUploadLockCommand),
     SuccessfulUploadLock(SuccessfulUploadLockedCommand),
@@ -70,6 +74,7 @@ pub fn recieve_orders(
     mut ev_move: EventWriter<MoveCommand>,
     mut ev_create_token: EventWriter<CreateTokenCommand>,
     mut ev_create_map: EventWriter<CreateMapCommand>,
+    mut ev_load_encounter: EventWriter<LoadEncounterCommand>,
     mut ev_request_data: EventWriter<RequestDataCommand>,
     mut ev_request_upload_lock: EventWriter<RequestUploadLockCommand>,
     mut ev_successful_upload_locked: EventWriter<SuccessfulUploadLockedCommand>,
@@ -91,6 +96,7 @@ pub fn recieve_orders(
             Command::Move(cmd) => ev_move.send(*cmd),
             Command::CreateToken(cmd) => ev_create_token.send(cmd.clone()),
             Command::CreateMap(cmd) => ev_create_map.send(cmd.clone()),
+            Command::LoadEncounter(cmd) => ev_load_encounter.send(cmd.clone()),
             Command::RequestData(cmd) => ev_request_data.send(cmd.clone()),
             Command::RequestUploadLock(cmd) => ev_request_upload_lock.send(cmd.clone()),
             Command::SuccessfulUploadLock(cmd) => ev_successful_upload_locked.send(cmd.clone()),
@@ -105,12 +111,12 @@ pub fn recieve_orders(
 pub struct MoveCommand {
     pub x: f32,
     pub y: f32,
-    pub id: baseplate::ID,
+    pub id: tokens::TokenId,
 }
 
 fn recieve_move(
     mut ev_move: EventReader<MoveCommand>,
-    mut tokens: Query<(&baseplate::ID, &mut Transform)>,
+    mut tokens: Query<(&tokens::TokenId, &mut Transform)>,
     mut event: EventWriter<RequestRedraw>,
 ) {
     for mov_ev in ev_move.read() {
@@ -128,8 +134,8 @@ fn recieve_move(
 pub struct CreateTokenCommand {
     pub x: f32,
     pub y: f32,
-    pub id: baseplate::ID,
-    pub url: String,
+    pub id: tokens::TokenId,
+    pub load_identifier: fileload::LoadIdentifier,
 }
 
 fn recieve_create_token(
@@ -137,47 +143,15 @@ fn recieve_create_token(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    asset_server: Res<AssetServer>,
 ) {
     for ev in ev_create_token.read() {
         commands.spawn(tokens::TokenBundle::new(
             ev.id,
+            ev.load_identifier.clone(),
             Vec3::new(ev.x, 0.01, ev.y),
             &mut meshes,
             &mut materials,
-            &asset_server,
         ));
-    }
-}
-
-#[derive(Event, Serialize, Deserialize, Clone)]
-pub struct CreateMapCommand {
-    pub x: f32,
-    pub y: f32,
-    pub map_id: maps::MapId,
-    pub data_id: fileload::LoadIdentifier,
-}
-
-fn recieve_create_map(
-    mut ev_create_map: EventReader<CreateMapCommand>,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut ev_load: EventWriter<fileload::LoadRequest>,
-) {
-    for ev in ev_create_map.read() {
-        commands.spawn(maps::MapBundle::new(
-            ev.map_id,
-            Vec3::new(ev.x, 0., ev.y),
-            &mut meshes,
-            &mut materials,
-        ));
-        ev_load.send(
-            fileload::LoadRequest{
-                id: ev.data_id.clone(),
-                endpoint: fileload::FileEndpoint::Map(ev.map_id),
-            }
-        )
     }
 }
 
@@ -282,3 +256,55 @@ fn recieve_upload_available(
         });
     }
 }
+
+#[derive(Event, Serialize, Deserialize, Clone)]
+pub struct CreateMapCommand {
+    pub x: f32,
+    pub y: f32,
+    pub map_id: maps::MapId,
+    pub data_id: fileload::LoadIdentifier,
+}
+
+fn recieve_create_map(
+    mut ev_create_map: EventReader<CreateMapCommand>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut ev_load: EventWriter<fileload::LoadRequest>,
+) {
+    for ev in ev_create_map.read() {
+        commands.spawn(maps::MapBundle::new(
+            ev.map_id,
+            ev.data_id.clone(),
+            Vec3::new(ev.x, 0., ev.y),
+            &mut meshes,
+            &mut materials,
+        ));
+        ev_load.send(
+            fileload::LoadRequest{
+                id: ev.data_id.clone(),
+                endpoint: fileload::FileEndpoint::Map(ev.map_id),
+            }
+        )
+    }
+}
+
+#[derive(Event, Serialize, Deserialize, Clone)]
+pub struct LoadEncounterCommand {
+    pub load_identifier: fileload::LoadIdentifier,
+}
+
+fn recieve_load_encounter(
+    mut ev_load_encounter: EventReader<LoadEncounterCommand>,
+    mut ev_load: EventWriter<fileload::LoadRequest>,
+) {
+    for ev in ev_load_encounter.read() {
+        ev_load.send(
+            fileload::LoadRequest{
+                id: ev.load_identifier.clone(),
+                endpoint: fileload::FileEndpoint::Encounter,
+            }
+        )
+    }
+}
+

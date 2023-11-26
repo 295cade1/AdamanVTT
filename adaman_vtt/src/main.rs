@@ -6,7 +6,6 @@ use bevy::{
 use bevy_mod_picking::prelude::*;
 
 //All modules
-mod baseplate;
 mod camera;
 mod filetransfer;
 mod input;
@@ -20,6 +19,7 @@ mod bank;
 mod fileload;
 mod dd2vtt;
 mod files;
+mod encounters;
 
 fn main() {
     App::new()
@@ -45,5 +45,6 @@ fn main() {
         .add_plugins(networking::NetworkingPlugin)
         .add_plugins(orders::OrdersPlugin)
         .add_plugins(maps::MapPlugin)
+        .add_plugins(encounters::EncounterPlugin)
         .run();
 }

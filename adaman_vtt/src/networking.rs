@@ -12,7 +12,10 @@ impl Plugin for NetworkingPlugin {
         app.add_systems(Startup, open_socket)
             .add_event::<NetworkedCommandEvent>()
             .add_event::<ClientCommandEvent>()
+            .add_event::<PeerConnected>()
+            .add_event::<PeerDisconnected>()
             .add_systems(Update, deal_with_connections)
+            .add_systems(Update, report_connections.after(deal_with_connections))
             .add_systems(Update, split_client_events.before(orders::recieve_orders))
             .add_systems(
                 Update,
@@ -45,10 +48,18 @@ fn open_socket(mut commands: Commands) {
     commands.insert_resource(socket);
 }
 
+#[derive(Event)]
+pub struct PeerConnected(PeerId);
+
+#[derive(Event)]
+pub struct PeerDisconnected(PeerId);
+
 fn deal_with_connections(
     mut commands: Commands,
     mut connection: ResMut<MatchboxSocket<MultipleChannels>>,
-    local_peer_id: Option<Res<LocalPeerId>>
+    local_peer_id: Option<Res<LocalPeerId>>,
+    mut ev_connected: EventWriter<PeerConnected>,
+    mut ev_disconnected: EventWriter<PeerDisconnected>,
 ) {
     let updated_peers = match connection.try_update_peers() {
         Err(_x) => panic!("Disconnected from server"),
@@ -62,11 +73,26 @@ fn deal_with_connections(
         }
     }
     for (peer_id, peer_state) in updated_peers {
-        let peer_state = match peer_state {
-            PeerState::Connected => "Connected",
-            PeerState::Disconnected => "Disconnected",
+        match peer_state {
+            PeerState::Connected => {
+                ev_connected.send(PeerConnected(peer_id));
+            },
+            PeerState::Disconnected => {
+                ev_disconnected.send(PeerDisconnected(peer_id));
+            },
         };
-        println!("{peer_id} : {peer_state}");
+    }
+}
+
+fn report_connections(
+    mut ev_connected: EventReader<PeerConnected>,
+    mut ev_disconnected: EventReader<PeerDisconnected>,
+) {
+    for ev in ev_connected.read() {
+        println!("Peer Connected - Peer ID: {}", ev.0);
+    }
+    for ev in ev_disconnected.read() {
+        println!("Peer Disconnected - Peer ID: {}", ev.0);
     }
 }
 

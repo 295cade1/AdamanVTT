@@ -16,7 +16,6 @@ impl From<DD2VTT> for maps::MapData {
     }
 }
 
-
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DD2VTT {

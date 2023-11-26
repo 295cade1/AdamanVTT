@@ -6,6 +6,7 @@ use serde::Serialize;
 use crate::bank;
 use crate::maps;
 use crate::filetransfer;
+use crate::encounters;
 
 pub struct FileLoad;
 
@@ -18,7 +19,7 @@ impl Plugin for FileLoad {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Component)]
 pub struct LoadIdentifier{
     pub data_id: bank::DataId,
     pub size: usize,
@@ -40,6 +41,7 @@ pub struct SuccessfulLoad {
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum FileEndpoint {
     Map(maps::MapId),
+    Encounter,
 }
 
 pub fn recieve_request(
@@ -64,13 +66,18 @@ pub fn recieve_request(
 pub fn process_successful_load(
     mut ev_success: EventReader<SuccessfulLoad>,
     mut ev_map_load: EventWriter<maps::MapLoad>,
+    mut ev_encounter_load: EventWriter<encounters::EncounterLoad>,
 ) {
     for succ_ev in ev_success.read() {
         match succ_ev.request.endpoint {
             FileEndpoint::Map(id) => ev_map_load.send(maps::MapLoad{
                 map_id: id,
                 data: succ_ev.data.clone(),
-            })
+            }),
+            FileEndpoint::Encounter => ev_encounter_load.send(encounters::EncounterLoad {
+                data_id: succ_ev.request.id.data_id,
+                data: succ_ev.data.clone(),
+            }),
         }
     }
 }

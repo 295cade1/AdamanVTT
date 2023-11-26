@@ -7,6 +7,8 @@ use std::io::Cursor;
 use std::sync::Arc;
 use base64::{Engine as _, engine::general_purpose};
 
+use crate::fileload;
+
 pub struct MapPlugin;
 
 impl Plugin for MapPlugin {
@@ -19,6 +21,7 @@ impl Plugin for MapPlugin {
 #[derive(Bundle)]
 pub struct MapBundle {
     pub id: MapId,
+    pub load_identifier: fileload::LoadIdentifier,
     #[bundle()]
     pub pbr: PbrBundle,
 }
@@ -33,6 +36,7 @@ pub fn get_new_id() -> MapId {
 impl MapBundle {
     pub fn new(
         id: MapId,
+        load_identifier: fileload::LoadIdentifier,
         position: Vec3,
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<StandardMaterial>>,
@@ -56,6 +60,7 @@ impl MapBundle {
                 ..default()
             },
             id,
+            load_identifier,
         }
     }
 }
@@ -115,8 +120,6 @@ pub fn load_map(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     for ev in ev_map_load.read() {
-        //let d = String::from_utf8(ev.data.clone().as_slice().into()).ok().unwrap_or("Failed to unwrap".to_string());
-        //println!("{d}");
         //Deserialize the map data
         let Some(data) = serde_json::from_slice::<MapData>(ev.data.as_slice()).ok() else {
             println!("Bad Map Data");

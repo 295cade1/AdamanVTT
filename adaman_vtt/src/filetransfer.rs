@@ -125,7 +125,7 @@ pub struct FileDownload{
     data: Vec<u8>,
 }
 
-const REQUEST_BYTES: usize = 16 * 1024;
+const REQUEST_BYTES: usize = 8 * 1024;
 
 impl FileDownload{
     fn new(value: fileload::LoadRequest) -> Self {
@@ -202,7 +202,7 @@ pub fn complete_download(
     };
 
     if state.is_done() {
-        bank.insert_data(&state.request.id.data_id, state.data.clone().into());
+        let _ = bank.store_at_id(&state.request.id.data_id, state.data.clone().into());
         ev_load.send(state.request.clone());
 
         for peer in state.peers.iter() {

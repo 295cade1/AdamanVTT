@@ -5,6 +5,7 @@ use crate::input;
 use crate::networking;
 use crate::files;
 use crate::bank;
+use crate::encounters;
 
 pub struct UIPlugin;
 
@@ -22,6 +23,10 @@ fn init_ui(mut commands: Commands) {
         right_sidepanel_state: SidePanelState::Maps,
         map_name: "".to_string(),
         map_list: None,
+        encounter_name: "".to_string(),
+        encounter_list: None,
+        token_name: "".to_string(),
+        token_list: None,
     };
     commands.insert_resource(ui_state);
 }
@@ -31,6 +36,10 @@ struct UIState {
     pub right_sidepanel_state: SidePanelState,
     pub map_name: String,
     pub map_list: Option<files::MapList>,
+    pub encounter_name: String,
+    pub encounter_list: Option<files::EncounterList>,
+    pub token_name: String,
+    pub token_list: Option<files::TokenList>,
 }
 
 #[derive(PartialEq, Eq)]
@@ -43,6 +52,8 @@ enum SidePanelState {
 fn update_ui_state(
     mut ui_state: ResMut<UIState>,
     mut map_event: EventReader<files::MapListUpdated>,
+    mut encounter_event: EventReader<files::EncounterListUpdated>,
+    mut token_event: EventReader<files::TokenListUpdated>,
     bank: ResMut<bank::Bank>,
 ) {
     for _ev in map_event.read() {
@@ -51,6 +62,18 @@ fn update_ui_state(
     if ui_state.map_list.is_none() {
         ui_state.map_list = Some(bank.get_map_list());
     }
+    for _ev in encounter_event.read() {
+        ui_state.encounter_list = None;
+    }
+    if ui_state.encounter_list.is_none() {
+        ui_state.encounter_list = Some(bank.get_encounter_list());
+    }
+    for _ev in token_event.read() {
+        ui_state.token_list = None;
+    }
+    if ui_state.token_list.is_none() {
+        ui_state.token_list = Some(bank.get_token_list());
+    }
 }
 
 fn ui(
@@ -58,6 +81,7 @@ fn ui(
     mut contexts: EguiContexts,
     mut ui_state: ResMut<UIState>,
     mut ev_client: EventWriter<networking::ClientCommandEvent>,
+    ev_save_encounter: EventWriter<encounters::EncounterSave>,
 ) {
     egui::SidePanel::right("Token Creation")
         .min_width(200.0)
@@ -85,12 +109,41 @@ fn ui(
                     }
                 }
                 SidePanelState::Tokens => {
-                    let create_token_btn = ui.button("Import Token");
+                    let create_token_btn = ui.button("New Token");
                     if create_token_btn.clicked() {
-                        ev_client.send(input::create_token(0., 0., None))
+                    }
+                    if let Some(ref token_list) = &ui_state.token_list {
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            for token in token_list.tokens.iter() {
+                                ui.separator();
+                                ui.label(token.name.clone());
+                                let insert_btn = ui.button("Load");
+                                if insert_btn.clicked() {
+                                    input::create_token(token.load_identifier.clone(), &mut ev_client);
+                                }
+                            }
+                        });
                     }
                 }
-                SidePanelState::Encounters => {}
+                SidePanelState::Encounters => {
+                    let save_encounter_btn = ui.button("Save Current");
+                    ui.text_edit_singleline(&mut ui_state.encounter_name);
+                    if save_encounter_btn.clicked() {
+                        input::save_encounter(ev_save_encounter, ui_state.map_name.clone());
+                    }
+                    if let Some(ref encounter_list) = &ui_state.encounter_list {
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            for encounter in encounter_list.encounters.iter() {
+                                ui.separator();
+                                ui.label(encounter.name.clone());
+                                let insert_btn = ui.button("Load");
+                                if insert_btn.clicked() {
+                                    input::load_encounter(encounter.load_identifier.clone(), &mut ev_client);
+                                }
+                            }
+                        });
+                    }
+                }
             }
 
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {

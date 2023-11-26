@@ -1,3 +1,5 @@
+use crate::fileload;
+
 use bevy::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -48,7 +50,6 @@ pub fn setup_bank(
     }
 }
 
-#[cfg(not(target_family = "wasm"))]
 impl Bank {
     pub fn request_data(&self, id: &DataId) -> Option<Arc<Vec<u8>>> {
         let data = self.data.load_raw(id.0.to_string()).ok();
@@ -61,8 +62,26 @@ impl Bank {
     pub fn contains_data(&self, id: &DataId) -> bool {
         self.data.exists(id.0.to_string())
     }
+    
+    pub fn store(&mut self, data: Arc<Vec<u8>>) -> fileload::LoadIdentifier {
+        let id = get_new_id();
+        self.store_at_id(&id, data)
+    }
+    
+    pub fn store_at_id(&mut self, id: &DataId, data: Arc<Vec<u8>>) -> fileload::LoadIdentifier {
+        let size = (*data).len();
+        let hash = (*data).reflect_hash().expect("Unable to hash vec<u8>");
 
-    pub fn insert_data(&mut self, id: &DataId, data: Arc<Vec<u8>>) {
+        self.insert_data(id, data);
+
+        fileload::LoadIdentifier{
+            data_id: *id,
+            size,
+            hash,
+        }
+    }
+
+    fn insert_data(&mut self, id: &DataId, data: Arc<Vec<u8>>) {
         let _ = self.data.store_raw(id.0.to_string(), data.as_slice());
     }
 }
