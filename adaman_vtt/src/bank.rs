@@ -6,15 +6,7 @@ use uuid::Uuid;
 use serde::Deserialize;
 use serde::Serialize;
 
-use general_storage::Storage;
-
-#[cfg(not(target_family = "wasm"))]
-use general_storage_file::{
-    FileStorage,
-    IfDirectoryMissing
-};
-#[cfg(not(target_family = "wasm"))]
-use directories::ProjectDirs;
+use bevy_pkv::PkvStore;
 
 pub struct BankPlugin;
 
@@ -31,28 +23,23 @@ pub fn get_new_id() -> DataId {
     DataId(Uuid::new_v4())
 }
 
-#[cfg(not(target_family = "wasm"))]
 #[derive(Resource)]
 pub struct Bank {
-    data: FileStorage,
+    data: PkvStore,
 }
 
-#[cfg(not(target_family = "wasm"))]
+
 pub fn setup_bank(
     mut commands: Commands,
 ) {
-    if let Some(proj_dirs) = ProjectDirs::from("vtt", "Cade", "AdamanVTT") {
-        let path = proj_dirs.data_dir();
-        let bank = FileStorage::new(path, IfDirectoryMissing::Create).expect("Failed to create storage location");
-        commands.insert_resource(Bank{
-            data: bank
-        })
-    }
+    commands.insert_resource(Bank{
+        data: PkvStore::new("Cade", "AdamanVTT")
+    })
 }
 
 impl Bank {
     pub fn request_data(&self, id: &DataId) -> Option<Arc<Vec<u8>>> {
-        let data = self.data.load_raw(id.0.to_string()).ok();
+        let data = self.data.get(id.0.to_string()).ok();
         let Some(data) = data else {
             return None;
         };
@@ -60,7 +47,7 @@ impl Bank {
     }
 
     pub fn contains_data(&self, id: &DataId) -> bool {
-        self.data.exists(id.0.to_string())
+        self.data.get::<Vec<u8>>(id.0.to_string()).is_ok()
     }
     
     pub fn store(&mut self, data: Arc<Vec<u8>>) -> fileload::LoadIdentifier {
@@ -82,6 +69,6 @@ impl Bank {
     }
 
     fn insert_data(&mut self, id: &DataId, data: Arc<Vec<u8>>) {
-        let _ = self.data.store_raw(id.0.to_string(), data.as_slice());
+        let _ = self.data.set(id.0.to_string(), &data);
     }
 }

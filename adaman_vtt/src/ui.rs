@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use bevy_async_task::*;
 
 use crate::input;
+use crate::input::MapFile;
 use crate::networking;
 use crate::files;
 use crate::bank;
@@ -77,11 +79,11 @@ fn update_ui_state(
 }
 
 fn ui(
-    commands: Commands,
     mut contexts: EguiContexts,
     mut ui_state: ResMut<UIState>,
     mut ev_client: EventWriter<networking::ClientCommandEvent>,
     ev_save_encounter: EventWriter<encounters::EncounterSave>,
+    mut ev_create_map: EventWriter<input::CreateMapFromFile>,
 ) {
     egui::SidePanel::right("Token Creation")
         .min_width(200.0)
@@ -92,7 +94,11 @@ fn ui(
                     let create_map_file_btn = ui.button("Import Map");
                     ui.text_edit_singleline(&mut ui_state.map_name);
                     if create_map_file_btn.clicked() {
-                        input::create_map_from_file(commands, ui_state.map_name.clone());
+                        ev_create_map.send(
+                            input::CreateMapFromFile {
+                                name: ui_state.map_name.clone().into(),
+                            }
+                        )
                     }
                     
                     if let Some(ref map_list) = &ui_state.map_list {

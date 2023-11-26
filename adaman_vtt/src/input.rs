@@ -1,10 +1,9 @@
-use bevy::{
-    prelude::*,
-    tasks::{AsyncComputeTaskPool, Task},
-};
+use bevy::prelude::*;
+use bevy_async_task::*;
 use bevy_mod_picking::prelude::*;
 
-use futures_lite::future;
+use std::sync::Arc;
+
 use rfd::AsyncFileDialog;
 
 use crate::maps;
@@ -23,6 +22,7 @@ impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TokenDragEvent>()
             .add_systems(Update, poll_for_map)
+            .add_event::<CreateMapFromFile>()
             .add_systems(
                 Update,
                 recieve_dragging_tokens.before(orders::recieve_orders),
@@ -105,82 +105,94 @@ fn get_plane_intersection(ray: Ray, plane_origin: Vec3, plane_normal: Vec3) -> O
 
 //UI funcs
 
-#[derive(Component)]
 pub struct MapFile {
-    file: Task<Option<Vec<u8>>>,
+    file: Option<Vec<u8>>,
     name: String,
-    //x: f32,
-    //y: f32,
 }
 
-pub fn create_map_from_file(mut commands: Commands, name: String) {
-    let thread_pool = AsyncComputeTaskPool::get();
-    let task = thread_pool.spawn(async move{
-        let handle = AsyncFileDialog::new()
-            .add_filter("image", &["png", "jpg"])
-            .add_filter("universalVTT", &["dd2vtt", "json"])
-            .pick_file().await;
-        let Some(handle) = handle else {
-            return None;
-        };
-        Some(handle.read().await)
-    });
-    commands.spawn(MapFile {file: task, name});
+#[derive(Event, Resource, Clone)]
+pub struct CreateMapFromFile {
+    pub name: String,
 }
 
 //Poll to see if the user has selected a path
 pub fn poll_for_map(
-    mut commands: Commands, 
     mut ev_client: EventWriter<networking::ClientCommandEvent>,
-    mut tasks: Query<(Entity, &mut MapFile)>,
     mut bank: Option<ResMut<bank::Bank>>,
     mut register_event: EventWriter<files::RegisterMap>,
+    mut poll_maps: AsyncTaskRunner<MapFile>,
+    mut ev_load_map: EventReader<CreateMapFromFile>,
 ) {
     //Make sure the bank is ready
     let Some(ref mut bank) = bank else {
         return;
     };
-    for (entity, mut selected_file) in tasks.iter_mut() {
-        //Poll the file selector entity to see if the user has selected a file yet
-        let Some(result) = future::block_on(future::poll_once(&mut selected_file.file)) else {
-            continue;
-        };
 
-        //println!("{:?}", result);
-        commands.entity(entity).remove::<MapFile>();
+    let mut load_event: Option<CreateMapFromFile> = None;
+    for ev in ev_load_map.read() {
+        load_event = Some(ev.clone());
+    }
 
-        //Make sure it's like a real thing
-        let Some(contents) = result else {
-            continue;
-        };
-        let contents = String::from_utf8(contents).unwrap();
-        //println!("{:?}", contents);
-
-        //Deserialize it into the RawMapData
-        let mut data: Option<maps::MapData> = None;
-        if let Ok(deserialized) = serde_json::from_str::<dd2vtt::DD2VTT>(contents.as_str()) {
-            data = Some(deserialized.into());
-        };
-
-        //Make sure we found some data
-        let Some(data) = data else {
-            continue;
-        };
-
-        //Insert the file data into the bank
-        let data = serde_json::to_vec(&data).ok().unwrap();
-        let load_identifier = bank.store(data.into());
-
-        register_event.send(
-            files::RegisterMap{
-                load_identifier: load_identifier.clone(),
-                name: selected_file.name.clone(),
+    match poll_maps.poll() {
+        AsyncTaskStatus::Idle => {
+            if let Some(ev) = load_event {
+                let task = async move{
+                    let handle = AsyncFileDialog::new()
+                        .add_filter("image", &["png", "jpg"])
+                        .add_filter("universalVTT", &["dd2vtt", "json"])
+                        .pick_file().await;
+                    let Some(handle) = handle else {
+                        return MapFile{
+                            file: None,
+                            name: ev.name.clone(),
+                        };
+                    };
+                    MapFile {
+                        file: Some(handle.read().await),
+                        name: ev.name.clone(),
+                    }
+                };
+                println!("Started Map Loading");
+                poll_maps.start(task);
             }
-        );
-        create_map(
-            load_identifier.clone(),
-            &mut ev_client,
-        )
+        },
+        AsyncTaskStatus::Pending => {
+        },
+        AsyncTaskStatus::Finished(file) => {
+            //Make sure it's like a real thing
+            let Some(contents) = file.file else {
+                return;
+            };
+
+            let contents = String::from_utf8(contents).unwrap();
+            //println!("{:?}", contents);
+
+            //Deserialize it into the RawMapData
+            let mut data: Option<maps::MapData> = None;
+            if let Ok(deserialized) = serde_json::from_str::<dd2vtt::DD2VTT>(contents.as_str()) {
+                data = Some(deserialized.into());
+            };
+
+            //Make sure we found some data
+            let Some(data) = data else {
+                return;
+            };
+
+            //Insert the file data into the bank
+            let data = serde_json::to_vec(&data).ok().unwrap();
+            let load_identifier = bank.store(data.into());
+
+            register_event.send(
+                files::RegisterMap{
+                    load_identifier: load_identifier.clone(),
+                    name: file.name.to_string(),
+                }
+            );
+            create_map(
+                load_identifier.clone(),
+                &mut ev_client,
+            );
+        }
     }
 }
 
