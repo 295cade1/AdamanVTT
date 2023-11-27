@@ -1,13 +1,12 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
-use bevy_async_task::*;
 
 use crate::input;
-use crate::input::MapFile;
 use crate::networking;
 use crate::files;
 use crate::bank;
 use crate::encounters;
+use crate::open5e;
 
 pub struct UIPlugin;
 
@@ -22,6 +21,7 @@ impl Plugin for UIPlugin {
 
 fn init_ui(mut commands: Commands) {
     let ui_state = UIState {
+        popup_panel_state: PopupState::Closed,
         right_sidepanel_state: SidePanelState::Maps,
         map_name: "".to_string(),
         map_list: None,
@@ -36,6 +36,7 @@ fn init_ui(mut commands: Commands) {
 #[derive(Resource)]
 struct UIState {
     pub right_sidepanel_state: SidePanelState,
+    pub popup_panel_state: PopupState,
     pub map_name: String,
     pub map_list: Option<files::MapList>,
     pub encounter_name: String,
@@ -49,6 +50,12 @@ enum SidePanelState {
     Maps,
     Tokens,
     Encounters,
+}
+
+#[derive(PartialEq, Eq)]
+enum PopupState {
+    Closed,
+    TokenCreation,
 }
 
 fn update_ui_state(
@@ -84,6 +91,7 @@ fn ui(
     mut ev_client: EventWriter<networking::ClientCommandEvent>,
     ev_save_encounter: EventWriter<encounters::EncounterSave>,
     mut ev_create_map: EventWriter<input::CreateMapFromFile>,
+    mut connection: ResMut<open5e::Open5eMonsterSelection>,
 ) {
     egui::SidePanel::right("Token Creation")
         .min_width(200.0)
@@ -115,8 +123,9 @@ fn ui(
                     }
                 }
                 SidePanelState::Tokens => {
-                    let create_token_btn = ui.button("New Token");
+                    let create_token_btn = ui.button("Create From Open5e");
                     if create_token_btn.clicked() {
+                        ui_state.popup_panel_state = PopupState::TokenCreation;
                     }
                     if let Some(ref token_list) = &ui_state.token_list {
                         egui::ScrollArea::vertical().show(ui, |ui| {
@@ -160,4 +169,23 @@ fn ui(
                 })
             })
         });
+    match ui_state.popup_panel_state {
+        PopupState::Closed => {},
+        PopupState::TokenCreation => {
+            let mut open = true;
+            egui::Window::new("Import From Open5e")
+                .open(&mut open)
+                .collapsible(false)
+                .default_size(egui::vec2(500., 700.))
+                .auto_sized()
+                .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+                .show(contexts.ctx_mut(), |ui| {
+                    connection.get_list();
+                })
+            ;
+            if !open {
+                ui_state.popup_panel_state = PopupState::Closed;
+            }
+        },
+    }
 }

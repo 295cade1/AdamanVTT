@@ -22,7 +22,7 @@ fn setup(mut commands: Commands) {
     commands.spawn(PointLightBundle {
         point_light: PointLight {
             intensity: 9000.0,
-            range: 100.,
+            range: 500.,
             shadows_enabled: true,
             ..default()
         },

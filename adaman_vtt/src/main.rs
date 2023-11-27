@@ -17,9 +17,11 @@ mod tokens;
 mod ui;
 mod bank;
 mod fileload;
-mod dd2vtt;
 mod files;
 mod encounters;
+
+mod dd2vtt;
+mod open5e;
 
 fn main() {
     App::new()
@@ -39,12 +41,14 @@ fn main() {
         .add_plugins(fileload::FileLoad)
         .add_plugins(input::InputPlugin)
         .add_plugins(camera::CameraPlugin)
-        .add_plugins(DefaultPickingPlugins)
+        .add_plugins(DefaultPickingPlugins.build().disable::<DebugPickingPlugin>())
         .add_plugins(ui::UIPlugin)
         .add_plugins(startup::GameStartPlugin)
         .add_plugins(networking::NetworkingPlugin)
         .add_plugins(orders::OrdersPlugin)
         .add_plugins(maps::MapPlugin)
+        .add_plugins(tokens::TokenPlugin)
         .add_plugins(encounters::EncounterPlugin)
+        .add_plugins(open5e::Open5ePlugin)
         .run();
 }

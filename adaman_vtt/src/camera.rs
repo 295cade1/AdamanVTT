@@ -49,18 +49,18 @@ fn camera_movement(
     for ev in scroll_evr.read() {
         match ev.unit {
             MouseScrollUnit::Line => {
-                println!(
-                    "Scroll (line units): vertical: {}, horizontal: {}",
-                    ev.y, ev.x
-                );
+                //println!(
+                    //"Scroll (line units): vertical: {}, horizontal: {}",
+                    //ev.y, ev.x
+                //);
                 vertical += ev.y;
                 horizontal -= ev.x;
             }
             MouseScrollUnit::Pixel => {
-                println!(
-                    "Scroll (pixel units): vertical: {}, horizontal: {}",
-                    ev.y, ev.x
-                );
+                //println!(
+                    //"Scroll (pixel units): vertical: {}, horizontal: {}",
+                    //ev.y, ev.x
+                //);
                 vertical += ev.y / 50.;
                 horizontal -= ev.x / 50.;
             }

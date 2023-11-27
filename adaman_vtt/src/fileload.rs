@@ -7,6 +7,7 @@ use crate::bank;
 use crate::maps;
 use crate::filetransfer;
 use crate::encounters;
+use crate::tokens;
 
 pub struct FileLoad;
 
@@ -42,6 +43,7 @@ pub struct SuccessfulLoad {
 pub enum FileEndpoint {
     Map(maps::MapId),
     Encounter,
+    Token(tokens::TokenId),
 }
 
 pub fn recieve_request(
@@ -67,6 +69,7 @@ pub fn process_successful_load(
     mut ev_success: EventReader<SuccessfulLoad>,
     mut ev_map_load: EventWriter<maps::MapLoad>,
     mut ev_encounter_load: EventWriter<encounters::EncounterLoad>,
+    mut ev_token_load: EventWriter<tokens::TokenLoad>,
 ) {
     for succ_ev in ev_success.read() {
         match succ_ev.request.endpoint {
@@ -76,6 +79,10 @@ pub fn process_successful_load(
             }),
             FileEndpoint::Encounter => ev_encounter_load.send(encounters::EncounterLoad {
                 data_id: succ_ev.request.id.data_id,
+                data: succ_ev.data.clone(),
+            }),
+            FileEndpoint::Token(id) => ev_token_load.send(tokens::TokenLoad{
+                token_id: id,
                 data: succ_ev.data.clone(),
             }),
         }

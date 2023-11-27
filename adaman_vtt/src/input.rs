@@ -2,8 +2,6 @@ use bevy::prelude::*;
 use bevy_async_task::*;
 use bevy_mod_picking::prelude::*;
 
-use std::sync::Arc;
-
 use rfd::AsyncFileDialog;
 
 use crate::maps;
@@ -195,6 +193,7 @@ pub fn poll_for_map(
         }
     }
 }
+
 
 pub fn create_map(
     load_identifier: fileload::LoadIdentifier,

@@ -13,6 +13,7 @@ mkShell rec {
     xorg.libX11 xorg.libXcursor xorg.libXi xorg.libXrandr # To use the x11 feature
     libxkbcommon wayland # To use the wayland feature
     gtk3
+    openssl
   ];
   shellHook = ''
     export XDG_DATA_DIRS=$GSETTINGS_SCHEMAS_PATH:${hicolor-icon-theme}/share:${gnome3.adwaita-icon-theme}/share
