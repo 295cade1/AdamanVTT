@@ -26,6 +26,7 @@ pub struct Open5eMonsterSelection {
     client: Arc<reqwest::Client>,
     current: Option<Root>,
     current_action: RequestAction,
+    token_list: Option<Vec<tokens::TokenData>>
 }
 
 #[derive(PartialEq)]
@@ -37,12 +38,15 @@ enum RequestAction {
 }
 
 impl Open5eMonsterSelection {
-    pub fn get_list(&mut self) -> Option<&Vec<Result>> {
+    pub fn get_list(&mut self) -> Option<&Vec<tokens::TokenData>> {
         let Some(ref current) = self.current else {
             self.current_action = RequestAction::Init;
             return None
         };
-        Some(&current.results)
+        if self.token_list.is_none() {
+            self.token_list = Some(current.results.iter().map(|x| (*x).clone().into()).collect());
+        }
+        Some(self.token_list.as_ref().unwrap())
     }
 }
 
@@ -52,6 +56,7 @@ impl Default for Open5eMonsterSelection {
             client: reqwest::Client::new().into(),
             current: None,
             current_action: RequestAction::Idle,
+            token_list: None,
         }
     }
 }
@@ -71,14 +76,16 @@ fn update_connection(
                 let task = async move {
                     let result = client.get(connection_str).send().await.ok().unwrap();
                     let text = result.text().await.unwrap();
+
                     println!("{}", &text);
 
-                    Some(Root {
-                        count: 0,
-                        next: "".to_string(),
-                        previous: "".to_string(),
-                        results: Vec::<Result>::new(),
-                    })
+                    match serde_json::from_str::<Root>(&text) {
+                        Ok(x) => Some(x),
+                        Err(x) => {
+                            println!("{}", x);
+                            None
+                        }
+                    }
                 };
                 println!("Started Open5e Connection");
                 poll_connection.start(task);
@@ -86,6 +93,9 @@ fn update_connection(
         },
         AsyncTaskStatus::Pending => {},
         AsyncTaskStatus::Finished(x) => {
+            if x.is_none() {
+                println!("Failed to parse Open5e");
+            }
             connection.current_action = RequestAction::Idle;
             connection.current = x;
         },
@@ -96,8 +106,8 @@ fn update_connection(
 #[serde(rename_all = "camelCase")]
 pub struct Root {
     pub count: i64,
-    pub next: String,
-    pub previous: String,
+    pub next: Option<String>,
+    pub previous: Option<String>,
     pub results: Vec<Result>,
 }
 
@@ -155,7 +165,7 @@ pub struct Result {
     #[serde(rename = "charisma_save")]
     pub charisma_save: Option<i64>,
     pub perception: Option<i64>,
-    pub skills: Skills,
+    pub skills: Option<Skills>,
     #[serde(rename = "damage_vulnerabilities")]
     pub damage_vulnerabilities: String,
     #[serde(rename = "damage_resistances")]
@@ -169,23 +179,23 @@ pub struct Result {
     #[serde(rename = "challenge_rating")]
     pub challenge_rating: String,
     pub cr: f64,
-    pub actions: Vec<Action>,
+    pub actions: Option<Vec<Action>>,
     #[serde(rename = "bonus_actions")]
-    pub bonus_actions: Value,
+    pub bonus_actions: Option<Value>,
     #[serde(default)]
-    pub reactions: Vec<Reaction>,
+    pub reactions: Option<Vec<Reaction>>,
     #[serde(rename = "legendary_desc")]
     pub legendary_desc: String,
     #[serde(rename = "legendary_actions")]
     pub legendary_actions: Option<Vec<LegendaryAction>>,
     #[serde(rename = "special_abilities")]
     #[serde(default)]
-    pub special_abilities: Vec<SpecialAbility>,
+    pub special_abilities: Option<Vec<SpecialAbility>>,
     #[serde(rename = "spell_list")]
     pub spell_list: Vec<String>,
     #[serde(rename = "page_no")]
     pub page_no: i64,
-    pub environments: Vec<String>,
+    pub environments: Option<Vec<String>>,
     #[serde(rename = "img_main")]
     pub img_main: Option<String>,
     #[serde(rename = "document__slug")]

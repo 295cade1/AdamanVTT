@@ -116,14 +116,25 @@ pub struct MoveCommand {
 
 fn recieve_move(
     mut ev_move: EventReader<MoveCommand>,
-    mut tokens: Query<(&tokens::TokenId, &mut Transform)>,
+    mut tokens: Query<(&tokens::TokenId, &mut Transform, Option<&tokens::StrippedTokenData>)>,
     mut event: EventWriter<RequestRedraw>,
 ) {
     for mov_ev in ev_move.read() {
         for mut token in tokens.iter_mut() {
-            if token.0 .0 == mov_ev.id.0 {
-                token.1.translation.x = mov_ev.x;
-                token.1.translation.z = mov_ev.y;
+            if token.0.0 == mov_ev.id.0 {
+                if let Some(data) = token.2 {
+                    let offset = if ((data.get_radius() * 2.) as i64) % 2 != 0 {
+                        2.5
+                    } else 
+                    {
+                        0.
+                    };
+                    token.1.translation.x = ((mov_ev.x - offset) / 5.).round() * 5. + offset; 
+                    token.1.translation.z = ((mov_ev.y - offset) / 5.).round() * 5. + offset;
+                } else {
+                    token.1.translation.x = mov_ev.x;
+                    token.1.translation.z = mov_ev.y;
+                }
                 event.send(RequestRedraw)
             }
         }
@@ -143,15 +154,22 @@ fn recieve_create_token(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut ev_load: EventWriter<fileload::LoadRequest>,
 ) {
     for ev in ev_create_token.read() {
         commands.spawn(tokens::TokenBundle::new(
             ev.id,
             ev.load_identifier.clone(),
-            Vec3::new(ev.x, 0.01, ev.y),
+            Vec3::new(ev.x, 0.5, ev.y),
             &mut meshes,
             &mut materials,
         ));
+        ev_load.send(
+            fileload::LoadRequest{
+                id: ev.load_identifier.clone(),
+                endpoint: fileload::FileEndpoint::Token(ev.id),
+            }
+        )
     }
 }
 

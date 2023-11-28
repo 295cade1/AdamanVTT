@@ -24,7 +24,10 @@ impl Plugin for InputPlugin {
             .add_systems(
                 Update,
                 recieve_dragging_tokens.before(orders::recieve_orders),
-            );
+            )
+            .add_event::<CreateTokenFromData>()
+            .add_systems(Update, create_token_from_data)
+        ;
     }
 }
 
@@ -226,6 +229,36 @@ pub fn load_encounter(
         },
         reliability: networking::NetworkReliability::Reliable,
     });
+}
+
+#[derive(Event)]
+pub struct CreateTokenFromData{
+    pub data: tokens::TokenData,
+}
+
+pub fn create_token_from_data(
+    mut ev_create: EventReader<CreateTokenFromData>,
+    mut bank: ResMut<bank::Bank>,
+    mut ev_client: EventWriter<networking::ClientCommandEvent>,
+    mut register_event: EventWriter<files::RegisterToken>,
+) {
+    for ev in ev_create.read() {
+        let data = &ev.data;
+        //Insert the file data into the bank
+        let data_serialized = serde_json::to_vec(data).ok().unwrap();
+        let load_identifier = bank.store(data_serialized.into());
+
+        register_event.send(
+            files::RegisterToken{
+                load_identifier: load_identifier.clone(),
+                name: data.name.to_string(),
+            }
+        );
+        create_token(
+            load_identifier.clone(),
+            &mut ev_client,
+        );
+    }
 }
 
 pub fn create_token(

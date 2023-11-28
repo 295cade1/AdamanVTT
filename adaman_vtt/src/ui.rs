@@ -91,6 +91,7 @@ fn ui(
     mut ev_client: EventWriter<networking::ClientCommandEvent>,
     ev_save_encounter: EventWriter<encounters::EncounterSave>,
     mut ev_create_map: EventWriter<input::CreateMapFromFile>,
+    mut ev_create_token: EventWriter<input::CreateTokenFromData>,
     mut connection: ResMut<open5e::Open5eMonsterSelection>,
 ) {
     egui::SidePanel::right("Token Creation")
@@ -176,11 +177,27 @@ fn ui(
             egui::Window::new("Import From Open5e")
                 .open(&mut open)
                 .collapsible(false)
-                .default_size(egui::vec2(500., 700.))
-                .auto_sized()
+                .fixed_size(egui::vec2(500., 600.))
+                .resizable(false)
                 .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
                 .show(contexts.ctx_mut(), |ui| {
-                    connection.get_list();
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        if let Some(list) = connection.get_list() {
+                            for item in list.iter() {
+                                ui.label(&item.name);
+                                ui.label(item.hit_points.to_string());
+                                let insert_btn = ui.button("Insert");
+                                if insert_btn.clicked() {
+                                    ev_create_token.send(
+                                        input::CreateTokenFromData{
+                                            data: item.clone(),
+                                        }
+                                    )
+                                }
+                                ui.separator();
+                            }
+                        }
+                    })
                 })
             ;
             if !open {

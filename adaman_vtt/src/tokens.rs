@@ -73,7 +73,7 @@ impl TokenBundle {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct TokenData {
     pub format: f32,
     pub name: String,
@@ -82,6 +82,81 @@ pub struct TokenData {
     pub hit_points: i64,
     pub armor_class: i64,
     pub img: Option<String>,
+}
+
+#[derive(Component)]
+pub struct StrippedTokenData {
+    pub name: String,
+    pub size: String,
+    pub type_field: String,
+    pub hit_points: i64,
+    pub armor_class: i64,
+}
+
+impl From<TokenData> for StrippedTokenData {
+    fn from(x: TokenData) -> Self {
+        StrippedTokenData {
+            name: x.name,
+            size: x.size,
+            type_field: x.type_field,
+            hit_points: x.hit_points,
+            armor_class: x.armor_class,
+        }
+    }
+}
+
+impl StrippedTokenData {
+    #[allow(clippy::if_same_then_else)]
+    pub fn get_radius(&self) -> f32 {
+        if self.size == "Tiny" {
+            1.25
+        }
+        else if self.size == "Small" {
+            2.5
+        }
+        else if self.size == "Medium" {
+            2.5
+        }
+        else if self.size == "Large" {
+            5.
+        }
+        else if self.size == "Huge" {
+            7.5
+        }
+        else if self.size == "Gargantuan" {
+            10.
+        }
+        else {
+            2.5
+        }
+    }
+}
+
+impl TokenData {
+    #[allow(clippy::if_same_then_else)]
+    pub fn get_radius(&self) -> f32 {
+        if self.size == "Tiny" {
+            1.25
+        }
+        else if self.size == "Small" {
+            2.5
+        }
+        else if self.size == "Medium" {
+            2.5
+        }
+        else if self.size == "Large" {
+            5.
+        }
+        else if self.size == "Huge" {
+            7.5
+        }
+        else if self.size == "Gargantuan" {
+            10.
+        }
+        else {
+            2.5
+        }
+    }
 }
 
 #[derive(Event, Serialize, Deserialize, Clone)]
@@ -132,18 +207,48 @@ pub fn load_token(
                 //Replace the material's image with the new one
                 //mat.base_color_texture = Some(image_handle.clone());
 
-                let radius = 1.;
+                let radius = data.get_radius();
                 println!("{radius}");
                 //Create a new mesh of the correct size
                 let new_quad = shape::Circle {
-                    radius,
+                    radius: radius - 0.5,
                     vertices: 64,
                 };
                 meshes.insert(token.0, new_quad.into());
 
+                let ring = shape::Circle {
+                    radius,
+                    vertices: 64,
+                };
+
+                let ring = commands.spawn(
+                    PbrBundle {
+                        mesh: meshes.add(ring.into()),
+                        material: materials.add(StandardMaterial {
+                            base_color: generate_token_color(token.3),
+                            ..default()
+                        }),
+                        transform: Transform::from_xyz(0., 0., -0.4)
+                            .with_rotation(Quat::from_euler(EulerRot::XYZ, 0., 0., std::f32::consts::PI)),
+                        ..default()
+                }).id();
+
+                commands.entity(token.2).push_children(&[ring]);
+
                 //Workaround to recalculate AABBs
                 commands.entity(token.2).remove::<bevy::render::primitives::Aabb>();
+
+                commands.entity(token.2).insert(std::convert::Into::<StrippedTokenData>::into(data.clone()));
             }
         }
     }
+}
+
+fn generate_token_color(id: &TokenId) -> Color {
+    let val = id.0.as_u128();
+    Color::rgb(
+        (((val + 13486234213461729271) % 26180914946810149033) % 255) as f32 / 255.,
+        (((val + 26535586659465879067) % 60290778083769636181) % 255) as f32 / 255.,
+        (((val + 12181176441617899549) % 83443272550043138497) % 255) as f32 / 255.,
+    )
 }

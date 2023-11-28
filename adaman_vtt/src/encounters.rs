@@ -51,11 +51,11 @@ fn load_encounter(
     for ev in ev_encounter_load.read() {
         //Remove all the old maps
         for (map, _) in maps.iter() {
-            commands.entity(map).despawn();
+            commands.entity(map).despawn_recursive();
         }
         //Remove all the old tokens
         for (token, _) in tokens.iter() {
-            commands.entity(token).despawn();
+            commands.entity(token).despawn_recursive();
         }
         //
         //Update the current encounter resource
