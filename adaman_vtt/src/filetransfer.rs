@@ -41,6 +41,8 @@ impl Plugin for FileTransfer {
             .add_systems(Update, acknowledge_upload_available)
 
             .add_event::<SendUploadAvailable>()
+
+            .add_systems(Update, send_available_on_connect)
             .add_systems(Update, send_upload_available)
             
             .insert_resource(UploadState{state: None})
@@ -68,6 +70,7 @@ pub fn handle_load_queue(
     mut queue: ResMut<LoadQueue>,
     mut download: ResMut<DownloadState>,
     mut upload_requests: EventWriter<SendUploadRequest>,
+    mut events: EventWriter<crate::ui::InsertLog>,
 ) {
     match download.state {
         None => {
@@ -77,7 +80,8 @@ pub fn handle_load_queue(
                     load_id: new_download.id.clone(),
                 });
                 let size = new_download.id.size;
-                println!("Downloading file: {size}");
+                
+                events.send(crate::ui::InsertLog::new(format!("Downloading file: {size}")));
                 download.state = Some(FileDownload::new(new_download));
             }
         },
@@ -125,7 +129,7 @@ pub struct FileDownload{
     data: Vec<u8>,
 }
 
-const REQUEST_BYTES: usize = 8 * 1024;
+const REQUEST_BYTES: usize = 16 * 1024;
 
 impl FileDownload{
     fn new(value: fileload::LoadRequest) -> Self {
@@ -194,12 +198,17 @@ pub fn complete_download(
     mut ev_networked: EventWriter<networking::NetworkedCommandEvent>,
     mut bank: ResMut<bank::Bank>,
     mut ev_send_upload_available: EventWriter<SendUploadAvailable>,
+    mut events: EventWriter<crate::ui::InsertLog>,
 ) {
     //If there is a FileDownload
     let state = match &download.state {
         None => return,
         Some(x) => x, 
     };
+    
+    let downloaded = 100. - ((state.sections.len() as f32 / (state.request.id.size as f32 / REQUEST_BYTES as f32)) * 100.).round();
+    let downloaded = format!("Downloaded: {}%", downloaded.to_string());
+    events.send(crate::ui::InsertLog::new(downloaded));
 
     if state.is_done() {
         let _ = bank.store_at_id(&state.request.id.data_id, state.data.clone().into());
@@ -222,6 +231,8 @@ pub fn complete_download(
         ev_send_upload_available.send(SendUploadAvailable);
 
         println!("Download Complete");
+
+        events.send(crate::ui::InsertLog::new("Download Complete".to_string()));
 
         download.state = None;
     }
@@ -296,7 +307,8 @@ pub fn lock_upload(
     mut upload_state: ResMut<UploadState>,
     mut ev_networked: EventWriter<networking::NetworkedCommandEvent>,
     bank: Res<bank::Bank>,
-    local_peer_id: Option<Res<networking::LocalPeerId>>
+    local_peer_id: Option<Res<networking::LocalPeerId>>,
+    mut events: EventWriter<crate::ui::InsertLog>,
 ) {
     let Some(local_peer_id) = local_peer_id else {
         return
@@ -307,7 +319,9 @@ pub fn lock_upload(
                 continue;
             };
 
-            println!("Upload locked to {}", &ev.peer_id);
+            let msg = format!("Upload locked to {}", &ev.peer_id);
+            events.send(crate::ui::InsertLog::new(msg));
+
             upload_state.state = Some(FileUpload{
                 target_peer_id: ev.peer_id,
                 file: file_data.clone(),
@@ -436,6 +450,15 @@ pub fn unlock_upload(
             upload.state = None;
             ev_send_upload_available.send(SendUploadAvailable);
         }
+    }
+}
+
+fn send_available_on_connect(
+    mut ev_send_upload_available: EventWriter<SendUploadAvailable>,
+    mut ev_connected: EventReader<networking::PeerConnected>,
+) {
+    for ev in ev_connected.read() {
+        ev_send_upload_available.send(SendUploadAvailable);
     }
 }
 

@@ -39,6 +39,7 @@ pub struct LocalPeerId {
 
 fn open_socket(mut commands: Commands) {
     let room_url = "wss://matchbox-server-woj7mv63ka-uc.a.run.app/adamantvtt";
+    //let room_url = "ws://127.0.0.1:3635/adamantvtt";
 
     let socket: MatchboxSocket<MultipleChannels> = WebRtcSocketBuilder::new(room_url)
         .add_channel(ChannelConfig::reliable())
@@ -163,7 +164,7 @@ fn send_networked_events(
                 let packet = NetworkPacket {
                     order: ev.order.clone(),
                 };
-                let arr = serde_json::to_string(&packet).unwrap().into_bytes().into_boxed_slice();
+                let arr = serde_json::to_vec(&packet).unwrap().into_boxed_slice();
                 let channel = match ev.reliability {
                     NetworkReliability::Reliable => 0,
                     NetworkReliability::Unreliable => 1,

@@ -8,6 +8,8 @@ use crate::bank;
 use crate::encounters;
 use crate::open5e;
 
+use std::collections::VecDeque;
+
 pub struct UIPlugin;
 
 impl Plugin for UIPlugin {
@@ -17,8 +19,8 @@ impl Plugin for UIPlugin {
             .add_systems(Update, update_ui_state.before(ui))
             .add_systems(Update, ui)
             .add_systems(Update, update_log.before(display_log))
-            .add_systems(Update, display_log)
-            .insert_resource(Log{messages: Vec::new()})
+            .add_systems(Update, display_log.after(ui))
+            .insert_resource(Log{messages: Vec::new().into()})
             .add_event::<InsertLog>()
             .add_systems(Update, log_network)
         ;
@@ -215,7 +217,7 @@ fn ui(
 
 #[derive(Resource)]
 struct Log {
-    messages: Vec<Message>,
+    messages: VecDeque<Message>,
 }
 
 struct Message {
@@ -226,6 +228,14 @@ struct Message {
 #[derive(Event)]
 pub struct InsertLog {
     text: String,
+}
+
+impl InsertLog {
+    pub fn new(text: String) -> InsertLog {
+        InsertLog{
+            text,
+        }
+    }
 }
 
 const MESSAGE_SHOW_TIME: f32 = 10.;
@@ -254,14 +264,30 @@ fn log_network(
 fn update_log(
     mut events: EventReader<InsertLog>,
     mut log: ResMut<Log>,
+    time: Res<Time>,
 ) {
     for ev in events.read() {
-        log.messages.push(
+        log.messages.push_back(
             Message{
                 text: ev.text.clone(),
                 alive: MESSAGE_SHOW_TIME,
             }
         )
+    }
+
+    for msg in log.messages.iter_mut() {
+        msg.alive -= time.delta_seconds();
+    }
+
+    let mut to_remove = Vec::<usize>::new();
+    for (i, _) in log.messages.iter().enumerate() {
+        if log.messages.get(i).unwrap().alive < 0. {
+            to_remove.push(i)
+        }
+    }
+    
+    for i in to_remove.iter() {
+        log.messages.remove(*i);
     }
 }
 
@@ -275,7 +301,7 @@ fn display_log(
         .show(contexts.ctx_mut(), |ui| {
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 ui.label("Messages");
-                for message in log.messages.iter() {
+                for message in log.messages.iter().rev() {
                     ui.label(&message.text);
                 }
             });
