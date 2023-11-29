@@ -8,16 +8,20 @@ use crate::bank;
 use crate::encounters;
 use crate::open5e;
 
-use std::collections::VecDeque;
-
 pub struct UIPlugin;
 
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(EguiPlugin)
             .add_systems(Startup, init_ui)
-            .add_systems(Update, update_ui_state)
-            .add_systems(Update, ui);
+            .add_systems(Update, update_ui_state.before(ui))
+            .add_systems(Update, ui)
+            .add_systems(Update, update_log.before(display_log))
+            .add_systems(Update, display_log)
+            .insert_resource(Log{messages: Vec::new()})
+            .add_event::<InsertLog>()
+            .add_systems(Update, log_network)
+        ;
     }
 }
 
@@ -219,10 +223,61 @@ struct Message {
     alive: f32,
 }
 
+#[derive(Event)]
+pub struct InsertLog {
+    text: String,
+}
+
 const MESSAGE_SHOW_TIME: f32 = 10.;
 
-fn display_log(
-    
+fn log_network(
+    mut events: EventWriter<InsertLog>,
+    mut ev_connected: EventReader<networking::PeerConnected>,
+    mut ev_disconnected: EventReader<networking::PeerDisconnected>,
 ) {
+    for ev in ev_connected.read() {
+        events.send(
+            InsertLog{
+                text: "Connected Peer ".to_string() + &ev.0.to_string(),
+            }
+        )
+    }
+    for ev in ev_disconnected.read() {
+        events.send(
+            InsertLog{
+                text: "Disconnected Peer ".to_string() + &ev.0.to_string(),
+            }
+        )
+    }
+}
 
+fn update_log(
+    mut events: EventReader<InsertLog>,
+    mut log: ResMut<Log>,
+) {
+    for ev in events.read() {
+        log.messages.push(
+            Message{
+                text: ev.text.clone(),
+                alive: MESSAGE_SHOW_TIME,
+            }
+        )
+    }
+}
+
+fn display_log(
+    log: Res<Log>,
+    mut contexts: EguiContexts,
+) {
+    egui::SidePanel::left("Log")
+        .frame(egui::Frame::none().stroke(egui::Stroke::NONE))
+        .max_width(300.)
+        .show(contexts.ctx_mut(), |ui| {
+            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+                ui.label("Messages");
+                for message in log.messages.iter() {
+                    ui.label(&message.text);
+                }
+            });
+        });
 }

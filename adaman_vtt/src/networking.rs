@@ -38,7 +38,7 @@ pub struct LocalPeerId {
 }
 
 fn open_socket(mut commands: Commands) {
-    let room_url = "ws://127.0.0.1:3536/adamantvtt";
+    let room_url = "wss://matchbox-server-woj7mv63ka-uc.a.run.app/adamantvtt";
 
     let socket: MatchboxSocket<MultipleChannels> = WebRtcSocketBuilder::new(room_url)
         .add_channel(ChannelConfig::reliable())
@@ -49,10 +49,10 @@ fn open_socket(mut commands: Commands) {
 }
 
 #[derive(Event)]
-pub struct PeerConnected(PeerId);
+pub struct PeerConnected(pub PeerId);
 
 #[derive(Event)]
-pub struct PeerDisconnected(PeerId);
+pub struct PeerDisconnected(pub PeerId);
 
 fn deal_with_connections(
     mut commands: Commands,
