@@ -8,6 +8,8 @@ use crate::bank;
 use crate::encounters;
 use crate::open5e;
 
+use std::collections::VecDeque;
+
 pub struct UIPlugin;
 
 impl Plugin for UIPlugin {
@@ -205,4 +207,22 @@ fn ui(
             }
         },
     }
+}
+
+#[derive(Resource)]
+struct Log {
+    messages: Vec<Message>,
+}
+
+struct Message {
+    text: String,
+    alive: f32,
+}
+
+const MESSAGE_SHOW_TIME: f32 = 10.;
+
+fn display_log(
+    
+) {
+
 }
