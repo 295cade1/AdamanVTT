@@ -163,7 +163,7 @@ fn send_networked_events(
                 let packet = NetworkPacket {
                     order: ev.order.clone(),
                 };
-                let arr = to_stdvec(&packet).unwrap().into_boxed_slice();
+                let arr = serde_json::to_string(&packet).unwrap().into_bytes().into_boxed_slice();
                 let channel = match ev.reliability {
                     NetworkReliability::Reliable => 0,
                     NetworkReliability::Unreliable => 1,
@@ -181,14 +181,14 @@ fn recieve_networked_events(
     //Reliable
     let recieved = connection.get_channel(0).unwrap().receive();
     for (peer_id, packet) in recieved {
-        let remote_order = from_bytes::<NetworkPacket>(&packet).unwrap();
+        let remote_order = serde_json::from_slice::<NetworkPacket>(&packet).unwrap();
         ev_order.send(remote_order.order);
         println!("Recieved from: {peer_id}");
     }
     //Unreliable
     let recieved = connection.get_channel(1).unwrap().receive();
     for (peer_id, packet) in recieved {
-        let remote_order = from_bytes::<NetworkPacket>(&packet).unwrap();
+        let remote_order = serde_json::from_slice::<NetworkPacket>(&packet).unwrap();
         ev_order.send(remote_order.order);
         println!("Recieved from: {peer_id}");
     }
