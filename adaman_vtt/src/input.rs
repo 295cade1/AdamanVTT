@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use bevy_async_task::*;
 use bevy_mod_picking::prelude::*;
 
+use cute_dnd_dice;
+
 use rfd::AsyncFileDialog;
 
 use crate::maps;
@@ -139,7 +141,7 @@ pub fn poll_for_map(
             if let Some(ev) = load_event {
                 let task = async move{
                     let handle = AsyncFileDialog::new()
-                        .add_filter("image", &["png", "jpg"])
+                        //.add_filter("image", &["png", "jpg"]) TODO Add img maps
                         .add_filter("universalVTT", &["dd2vtt", "json"])
                         .pick_file().await;
                     let Some(handle) = handle else {
@@ -285,4 +287,43 @@ pub fn save_encounter(
     ev_save_encounter.send(encounters::EncounterSave{
         name,
     });
+}
+
+pub fn send_message(
+    text: String,
+    ev_client: &mut EventWriter<networking::ClientCommandEvent>,
+    local_peer_id: Res<networking::LocalPeerId>,
+) {
+    let processed = process_dice(text.clone());
+    let mut roll = false;
+    let text = if processed.is_some() {
+        roll = true;
+        format!("Rolled: {}", processed.unwrap())
+    } else {
+        text
+    };
+
+    ev_client.send(
+        networking::ClientCommandEvent {
+            order: crate::orders::OrderEvent {
+                command: crate::orders::Command::Message(
+                    crate::ui::RecieveMessage{
+                        text: text.clone(),
+                        from: local_peer_id.id,
+                        roll,
+                    }
+                )
+            },
+            reliability: networking::NetworkReliability::Reliable,
+        }
+    )
+}
+
+fn process_dice(text: String) -> Option<String> {
+    let split: Vec<&str> = text.split(" ").collect();
+    if split.starts_with(&["/roll"]) {
+        Some(cute_dnd_dice::Roll::from_str(&split[1..].concat()).ok()?.roll().to_string())
+    } else {
+        None
+    }
 }

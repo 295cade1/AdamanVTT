@@ -46,7 +46,8 @@ fn load_encounter(
     maps: Query<(Entity, With<MapId>)>,
     tokens: Query<(Entity, With<TokenId>)>,
     mut current_encounter: ResMut<CurrentEncounterID>,
-    mut map_creation: EventWriter<orders::CreateMapCommand>
+    mut map_creation: EventWriter<orders::CreateMapCommand>,
+    mut token_creation: EventWriter<orders::CreateTokenCommand>,
 ) {
     for ev in ev_encounter_load.read() {
         //Remove all the old maps
@@ -69,6 +70,10 @@ fn load_encounter(
         //Actually handle the loading of entities
         for map_load in data.map_instances.iter() {
             map_creation.send(map_load.command.clone())
+        }
+        //Actually handle the loading of entities
+        for token_load in data.token_instances.iter() {
+            token_creation.send(token_load.command.clone())
         }
     }
 }
@@ -96,7 +101,7 @@ fn save_encounter(
                         data_id: data_id.clone(),
                         map_id: *map_id,
                         x: transform.translation.x,
-                        y: transform.translation.y,
+                        y: transform.translation.z,
                     }
                 }
             )
@@ -109,7 +114,7 @@ fn save_encounter(
                         load_identifier: data_id.clone(),
                         id: *token_id,
                         x: transform.translation.x,
-                        y: transform.translation.y,
+                        y: transform.translation.z,
                     }
                 }
             )

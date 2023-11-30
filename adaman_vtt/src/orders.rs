@@ -8,6 +8,7 @@ use crate::maps;
 use crate::tokens;
 use crate::fileload;
 use crate::filetransfer;
+use crate::ui;
 
 pub struct OrdersPlugin;
 
@@ -66,6 +67,7 @@ pub enum Command {
     RecieveData(RecieveDataCommand),
     UnlockUpload(UnlockUploadCommand),
     UploadAvailable(UploadAvailableCommand),
+    Message(ui::RecieveMessage),
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -81,6 +83,7 @@ pub fn recieve_orders(
     mut ev_recieve_data: EventWriter<RecieveDataCommand>,
     mut ev_unlock_upload: EventWriter<UnlockUploadCommand>,
     mut ev_upload_available: EventWriter<UploadAvailableCommand>,
+    mut ev_message: EventWriter<ui::RecieveMessage>,
 ) {
     for ord_ev in ev_orders.read() {
         //match &ord_ev.command {
@@ -103,6 +106,7 @@ pub fn recieve_orders(
             Command::RecieveData(cmd) => ev_recieve_data.send(cmd.clone()),
             Command::UnlockUpload(cmd) => ev_unlock_upload.send(cmd.clone()),
             Command::UploadAvailable(cmd) => ev_upload_available.send(cmd.clone()),
+            Command::Message(cmd) => ev_message.send(cmd.clone()),
         }
     }
 }
@@ -122,19 +126,8 @@ fn recieve_move(
     for mov_ev in ev_move.read() {
         for mut token in tokens.iter_mut() {
             if token.0.0 == mov_ev.id.0 {
-                if let Some(data) = token.2 {
-                    let offset = if ((data.get_radius() * 2.) as i64) % 2 != 0 {
-                        2.5
-                    } else 
-                    {
-                        0.
-                    };
-                    token.1.translation.x = ((mov_ev.x - offset) / 5.).round() * 5. + offset; 
-                    token.1.translation.z = ((mov_ev.y - offset) / 5.).round() * 5. + offset;
-                } else {
-                    token.1.translation.x = mov_ev.x;
-                    token.1.translation.z = mov_ev.y;
-                }
+                token.1.translation.x = mov_ev.x;
+                token.1.translation.z = mov_ev.y;
                 event.send(RequestRedraw)
             }
         }
@@ -325,4 +318,5 @@ fn recieve_load_encounter(
         )
     }
 }
+
 

@@ -3,6 +3,8 @@
 debug/
 target/
 out/
+.cargo/
+.rustup/
 
 logo.png
 

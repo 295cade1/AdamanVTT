@@ -11,9 +11,14 @@
             "id": "3781e4335d6672ea",
             "type": "leaf",
             "state": {
-              "type": "kanban",
+              "type": "canvas",
               "state": {
-                "file": "Kanban Board.md"
+                "file": "Map Loading.canvas",
+                "viewState": {
+                  "x": 97.5,
+                  "y": 665,
+                  "zoom": -2.328781765928425
+                }
               }
             }
           }
@@ -83,7 +88,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Kanban Board.md",
+                "file": "Map Loading.canvas",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -100,7 +105,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Kanban Board.md",
+                "file": "Map Loading.canvas",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -123,7 +128,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Kanban Board.md"
+                "file": "Map Loading.canvas"
               }
             }
           },
@@ -156,8 +161,9 @@
   },
   "active": "3781e4335d6672ea",
   "lastOpenFiles": [
-    "Camera Movement.md",
+    "Saving on wasm.md",
     "Kanban Board.md",
+    "Camera Movement.md",
     "Map Loading.canvas",
     "Saving.md",
     "Movement.md",
@@ -166,7 +172,6 @@
     "Tokens.md",
     "Untitled.md",
     "Token Data.md",
-    "Saving on wasm.md",
     "Rework Network Events.md",
     "Map Uploading.md",
     "Time Tracking.md",

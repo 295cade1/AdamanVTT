@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
 use crate::input;
@@ -19,10 +20,14 @@ impl Plugin for UIPlugin {
             .add_systems(Update, update_ui_state.before(ui))
             .add_systems(Update, ui)
             .add_systems(Update, update_log.before(display_log))
-            .add_systems(Update, display_log.after(ui))
+            .add_systems(Update, text_messages.after(ui))
+            .add_systems(Update, display_log.after(text_messages))
             .insert_resource(Log{messages: Vec::new().into()})
             .add_event::<InsertLog>()
             .add_systems(Update, log_network)
+            .insert_resource(TextMessages{messages: Vec::new().into(), input: "".to_string()})
+            .add_event::<RecieveMessage>()
+            .add_systems(Update, update_messages.before(text_messages))
         ;
     }
 }
@@ -153,7 +158,7 @@ fn ui(
                     let save_encounter_btn = ui.button("Save Current");
                     ui.text_edit_singleline(&mut ui_state.encounter_name);
                     if save_encounter_btn.clicked() {
-                        input::save_encounter(ev_save_encounter, ui_state.map_name.clone());
+                        input::save_encounter(ev_save_encounter, ui_state.encounter_name.clone());
                     }
                     if let Some(ref encounter_list) = &ui_state.encounter_list {
                         egui::ScrollArea::vertical().show(ui, |ui| {
@@ -205,7 +210,11 @@ fn ui(
                                 ui.separator();
                             }
                         }
-                    })
+                    });
+                    ui.horizontal(|ui| {
+                        let prev = ui.button("Prev");
+                        let next = ui.button("Next");
+                    });
                 })
             ;
             if !open {
@@ -300,9 +309,80 @@ fn display_log(
         .max_width(300.)
         .show(contexts.ctx_mut(), |ui| {
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                ui.label("Messages");
                 for message in log.messages.iter().rev() {
                     ui.label(&message.text);
+                }
+            });
+        });
+}
+
+#[derive(Resource)]
+struct TextMessages {
+    messages: VecDeque<TextMessage>,
+    input: String,
+}
+
+struct TextMessage {
+    text: String,
+    from: bevy_matchbox::prelude::PeerId,
+    roll: bool,
+}
+
+#[derive(Event, Serialize, Deserialize, Clone)]
+pub struct RecieveMessage {
+    pub text: String,
+    pub from: bevy_matchbox::prelude::PeerId,
+    pub roll: bool,
+}
+
+fn update_messages(
+    mut events: EventReader<RecieveMessage>,
+    mut log: ResMut<TextMessages>,
+) {
+    for ev in events.read() {
+        log.messages.push_back(
+            TextMessage{
+                text: ev.text.clone(),
+                from: ev.from.clone(),
+                roll: ev.roll,
+            }
+        )
+    }
+
+    while log.messages.len() > 20 {
+        log.messages.pop_front();
+    }
+
+}
+
+fn text_messages(
+    mut log: ResMut<TextMessages>,
+    mut contexts: EguiContexts,
+    mut ev_client: EventWriter<networking::ClientCommandEvent>,
+    local_peer_id: Option<Res<networking::LocalPeerId>>,
+) {
+    let Some(local_peer_id) = local_peer_id else {
+        return
+    };
+    egui::SidePanel::left("Messages")
+        .max_width(500.)
+        .show(contexts.ctx_mut(), |ui| {
+            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+                ui.horizontal(|ui| {
+                    ui.text_edit_singleline(&mut log.input);
+                    let btn = ui.button("Send");
+                    if btn.clicked() {
+                        input::send_message(log.input.clone(), &mut ev_client, local_peer_id);
+                    }
+                });
+                
+                for message in log.messages.iter().rev() {
+                    ui.horizontal(|ui| {
+                        if message.roll {
+                            ui.label("ROLL");
+                        }
+                        ui.label(format!("{} : {}", &message.from, &message.text));
+                    });
                 }
             });
         });
